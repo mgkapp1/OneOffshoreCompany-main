@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Exact Colors from Original Website */
+    --primary-blue: #3FA4F4; /* Exact blue from fee cards */
+    --primary-dark: #1E293B;
+    --success-green: #10B981;
+    --background-white: #FFFFFF;
+    --text-dark: #1F2937;
+    --text-gray: #6B7280;
+    --border-light: #E5E7EB;
+    --accent-light: #F8FAFC;
+
+    /* Tailwind compatibility */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    font-size: 0.9rem; /* 10% smaller base font size */
+  }
+
+  /* Remove the scaling transform and use proper sizing instead */
+  #root {
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* Adjust container max-width to be slightly smaller */
+  .container {
+    max-width: 90rem; /* Reduced from default */
+  }
+
+  /* Hero gradient updated to use exact #3FA4F4 blue */
+  .hero-gradient {
+    background: linear-gradient(135deg, #3FA4F4 0%, #2D5BFF 100%);
+  }
+
+  /* Custom utility classes for exact colors */
+  .text-primary-blue {
+    color: #3FA4F4;
+  }
+
+  .bg-primary-blue {
+    background-color: #3FA4F4;
+  }
+
+  .border-primary-blue {
+    border-color: #3FA4F4;
+  }
+
+  .text-primary-dark {
+    color: #1E293B;
+  }
+
+  .bg-primary-dark {
+    background-color: #1E293B;
+  }
+
+  .text-success-green {
+    color: #10B981;
+  }
+
+  .bg-success-green {
+    background-color: #10B981;
+  }
+
+  .text-text-dark {
+    color: #1F2937;
+  }
+
+  .text-text-gray {
+    color: #6B7280;
+  }
+
+  .border-border-light {
+    border-color: #E5E7EB;
+  }
+
+  .bg-accent-light {
+    background-color: #F8FAFC;
+  }
+
+  /* Exact button styles from original */
+  .btn-primary {
+    @apply bg-primary-blue text-white font-semibold py-2.5 px-5 rounded-lg hover:bg-blue-600 transition-colors text-sm;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-primary-blue border border-primary-blue font-semibold py-2.5 px-5 rounded-lg hover:bg-primary-blue hover:text-white transition-colors text-sm;
+  }
+}
+
+/* Additional utility classes for 10% smaller sizing */
+.text-smaller {
+  font-size: 0.9rem;
+}
+
+.py-smaller {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.px-smaller {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.mb-smaller {
+  margin-bottom: 0.75rem;
+}
+
+.space-y-smaller > * + * {
+  margin-top: 0.75rem;
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">sleepy-chinchilla-zoom</string>
+    <string name="title_activity_main">sleepy-chinchilla-zoom</string>
+    <string name="package_name">com.example.sleepychinchillazoom</string>
+    <string name="custom_url_scheme">com.example.sleepychinchillazoom</string>
+</resources>

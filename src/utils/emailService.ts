@@ -52,11 +52,27 @@ export const sendPaymentConfirmationEmail = async (emailData: EmailData): Promis
 
     console.log('Sending payment confirmation email:', emailData);
     
+    // Prepare template parameters - using the correct format for your EmailJS template
+    const templateParams = {
+      to_email: emailData.customer_email, // This should match your EmailJS template
+      customer_name: emailData.customer_name,
+      customer_email: emailData.customer_email,
+      order_amount: emailData.order_amount,
+      jurisdiction: emailData.jurisdiction,
+      order_items: emailData.order_items,
+      invoice_number: emailData.invoice_number,
+      payment_type: emailData.payment_type,
+      reply_to: emailData.customer_email,
+      from_name: "One Offshore Company"
+    };
+
+    console.log('Template parameters:', templateParams);
+    
     // Send email using EmailJS
     const result = await window.emailjs.send(
       'service_88341ce',
       'template_a49s36z',
-      emailData
+      templateParams
     );
 
     console.log('Email sent successfully:', result);

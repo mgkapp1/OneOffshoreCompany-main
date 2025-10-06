@@ -107,22 +107,6 @@ const CheckoutPage = () => {
     setError(null);
 
     try {
-      // Prepare form data for FormSubmit
-      const formSubmitData = new FormData();
-      formSubmitData.append('name', formData.name);
-      formSubmitData.append('email', formData.email);
-      formSubmitData.append('phone', formData.phone);
-      formSubmitData.append('company_name', formData.company_name);
-      formSubmitData.append('invoice_number', formData.invoice_number);
-      formSubmitData.append('amount', `£${parseFloat(formData.amount).toFixed(2)}`);
-      formSubmitData.append('jurisdiction', formData.jurisdiction);
-      formSubmitData.append('payment_type', formData.payment_type);
-      formSubmitData.append('_replyto', formData.email);
-      formSubmitData.append('_cc', 'enquiries@oneoffshorecompany.com,accounts@oneoffshorecompany.com');
-      formSubmitData.append('_subject', formData.payment_type === 'invoice' 
-        ? `Invoice Payment - ${formData.invoice_number}` 
-        : 'Company Formation Payment');
-
       // Create checkout session directly with Stripe API
       const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
         method: 'POST',
@@ -156,12 +140,6 @@ const CheckoutPage = () => {
       if (session.error) {
         throw new Error(session.error.message);
       }
-
-      // Submit form data to FormSubmit (this will send the email)
-      await fetch('https://formsubmit.co/ajax/accounts@oneoffshorecompany.com', {
-        method: 'POST',
-        body: formSubmitData,
-      });
 
       // Redirect to Stripe Checkout using session URL
       if (session.url) {

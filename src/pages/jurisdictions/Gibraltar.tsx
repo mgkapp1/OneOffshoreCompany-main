@@ -1,11 +1,12 @@
 "use client";
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 
 const GibraltarPage = () => {
   const { addItem } = useCart();
+  const navigate = useNavigate();
 
   const handleAddToCart = () => {
     addItem({
@@ -15,6 +16,25 @@ const GibraltarPage = () => {
       jurisdiction: 'Gibraltar',
       type: 'formation'
     });
+    
+    // Navigate to homepage first, then scroll to jurisdictions section
+    navigate('/');
+    
+    // Use a slightly longer timeout to ensure the homepage has loaded
+    setTimeout(() => {
+      const jurisdictionsSection = document.getElementById('jurisdictions');
+      if (jurisdictionsSection) {
+        const header = document.querySelector('header');
+        const headerHeight = header ? header.offsetHeight : 0;
+        const elementPosition = jurisdictionsSection.getBoundingClientRect().top + window.pageYOffset;
+        const offsetPosition = elementPosition - headerHeight - 20;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 300);
   };
 
   return (

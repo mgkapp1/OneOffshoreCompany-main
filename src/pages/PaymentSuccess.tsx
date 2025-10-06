@@ -15,8 +15,13 @@ const PaymentSuccess = () => {
   const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Clear cart on successful payment
+    console.log('PaymentSuccess mounted - clearing cart and stopping loading');
+    
+    // Clear cart immediately
     clearCart();
+    
+    // Stop loading immediately - show success page
+    setIsLoading(false);
     
     // Extract customer data from URL parameters (for invoice payments) or use cart data
     const customerName = searchParams.get('name') || 'Customer';
@@ -28,41 +33,46 @@ const PaymentSuccess = () => {
     const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
     const amount = searchParams.get('amount') || state.total.toString();
 
-    // Prepare email data
-    const emailData: EmailData = {
-      customer_name: customerName,
-      customer_email: customerEmail,
-      order_amount: `£${parseFloat(amount).toFixed(2)}`,
-      jurisdiction: jurisdiction || (state.items.length > 0 ? state.items.map(item => item.jurisdiction).join(', ') : ''),
-      order_items: state.items.length > 0 
-        ? formatOrderItems(state.items)
-        : `Invoice Payment - ${invoiceNumber}`,
-      invoice_number: invoiceNumber,
-      payment_type: paymentType
-    };
+    console.log('Preparing to send email in background...');
 
-    // Send confirmation email
-    const sendEmail = async () => {
-      if (!emailSent) {
+    // Send email in background after a short delay
+    const emailTimer = setTimeout(async () => {
+      try {
+        console.log('Sending background email...');
+        
+        // Prepare email data
+        const emailData: EmailData = {
+          customer_name: customerName,
+          customer_email: customerEmail,
+          order_amount: `£${parseFloat(amount).toFixed(2)}`,
+          jurisdiction: jurisdiction || (state.items.length > 0 ? state.items.map(item => item.jurisdiction).join(', ') : ''),
+          order_items: state.items.length > 0 
+            ? formatOrderItems(state.items)
+            : `Invoice Payment - ${invoiceNumber}`,
+          invoice_number: invoiceNumber,
+          payment_type: paymentType
+        };
+
         const success = await sendPaymentConfirmationEmail(emailData);
         if (success) {
+          console.log('Background email sent successfully');
           setEmailSent(true);
-          console.log('Payment confirmation email sent successfully');
         } else {
+          console.error('Failed to send background email');
           setEmailError('Failed to send confirmation email. Our team will contact you shortly.');
-          console.error('Failed to send payment confirmation email');
         }
+      } catch (error) {
+        console.error('Error in background email process:', error);
+        setEmailError('Email service temporarily unavailable. Our team will contact you shortly.');
       }
-    };
-
-    // Send email after a brief delay to ensure page is loaded
-    const emailTimer = setTimeout(() => {
-      sendEmail();
-      setIsLoading(false);
     }, 1000);
 
-    return () => clearTimeout(emailTimer);
-  }, [clearCart, searchParams, state.items, state.total, emailSent]);
+    // Cleanup timer if component unmounts
+    return () => {
+      console.log('PaymentSuccess cleanup - clearing email timer');
+      clearTimeout(emailTimer);
+    };
+  }, []); // Empty dependencies - run only once on mount
 
   if (isLoading) {
     return (

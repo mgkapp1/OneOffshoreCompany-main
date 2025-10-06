@@ -4,18 +4,65 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { sendPaymentConfirmationEmail, formatOrderItems, EmailData } from '../utils/emailService';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
-  const { clearCart } = useCart();
+  const { state, clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     // Clear cart on successful payment
     clearCart();
-    setIsLoading(false);
-  }, [clearCart]);
+    
+    // Extract customer data from URL parameters (for invoice payments) or use cart data
+    const customerName = searchParams.get('name') || 'Customer';
+    const customerEmail = searchParams.get('customer_email') || searchParams.get('email') || '';
+    const phone = searchParams.get('phone') || '';
+    const companyName = searchParams.get('company') || '';
+    const invoiceNumber = searchParams.get('invoice') || searchParams.get('$ProFormaID') || '';
+    const jurisdiction = searchParams.get('jurisdiction') || '';
+    const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
+    const amount = searchParams.get('amount') || state.total.toString();
+
+    // Prepare email data
+    const emailData: EmailData = {
+      customer_name: customerName,
+      customer_email: customerEmail,
+      order_amount: `£${parseFloat(amount).toFixed(2)}`,
+      jurisdiction: jurisdiction || (state.items.length > 0 ? state.items.map(item => item.jurisdiction).join(', ') : ''),
+      order_items: state.items.length > 0 
+        ? formatOrderItems(state.items)
+        : `Invoice Payment - ${invoiceNumber}`,
+      invoice_number: invoiceNumber,
+      payment_type: paymentType
+    };
+
+    // Send confirmation email
+    const sendEmail = async () => {
+      if (!emailSent) {
+        const success = await sendPaymentConfirmationEmail(emailData);
+        if (success) {
+          setEmailSent(true);
+          console.log('Payment confirmation email sent successfully');
+        } else {
+          setEmailError('Failed to send confirmation email. Our team will contact you shortly.');
+          console.error('Failed to send payment confirmation email');
+        }
+      }
+    };
+
+    // Send email after a brief delay to ensure page is loaded
+    const emailTimer = setTimeout(() => {
+      sendEmail();
+      setIsLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(emailTimer);
+  }, [clearCart, searchParams, state.items, state.total, emailSent]);
 
   if (isLoading) {
     return (
@@ -40,6 +87,22 @@ const PaymentSuccess = () => {
           <p className="text-lg text-gray-600 mb-6">
             Thank you for your order. Your payment has been processed successfully.
           </p>
+          
+          {emailSent && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <p className="text-green-700 font-medium">
+                ✓ Confirmation email sent to you and our team
+              </p>
+            </div>
+          )}
+          
+          {emailError && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-yellow-700">
+                {emailError}
+              </p>
+            </div>
+          )}
           
           {sessionId && (
             <p className="text-sm text-gray-500 mb-6">

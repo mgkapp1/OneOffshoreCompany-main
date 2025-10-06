@@ -44,11 +44,6 @@ const Header = () => {
     navigate('/checkout');
   };
 
-  // Test renewals link - remove in production
-  const testRenewalsLink = () => {
-    navigate('/renewals?$OSCompanyName=Test%20Company&$FirstName=John&$LastName=Doe&$TelNo=+441234567890&$CustomerEmail=test@example.com&$ProFormaID=TEST-12345&$Jurisdiction=Seychelles&$ValueIncTax=1065');
-  };
-
   return (
     <>
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
@@ -72,14 +67,6 @@ const Header = () => {
             </div>
 
             <div className="flex items-center space-x-2 sm:space-x-4">
-              {/* Test renewals link - remove in production */}
-              <button 
-                onClick={testRenewalsLink}
-                className="hidden sm:inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 cursor-pointer text-xs"
-              >
-                Test Invoice Link
-              </button>
-
               <div className="hidden sm:block">
                 <button 
                   onClick={() => setIsSearchOpen(true)}
@@ -147,12 +134,6 @@ const Header = () => {
                 >
                   <Search className="h-4 w-4" />
                   <span>Search</span>
-                </button>
-                <button 
-                  onClick={testRenewalsLink}
-                  className="text-gray-600 hover:text-[#3FA4F4] font-medium text-left cursor-pointer"
-                >
-                  Test Invoice Link
                 </button>
               </nav>
             </div>

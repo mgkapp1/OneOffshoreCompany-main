@@ -1,14 +1,10 @@
-import emailjs from '@emailjs/browser';
+// EmailJS utility functions with dynamic loading support
 
-// Initialize EmailJS with your credentials
-const EMAILJS_CONFIG = {
-  SERVICE_ID: 'service_88341ce',
-  TEMPLATE_ID: 'template_a49s36z',
-  PUBLIC_KEY: 'Jd-xUzfI7TVry1bHs'
-};
-
-// Initialize EmailJS
-emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+declare global {
+  interface Window {
+    emailjs: any;
+  }
+}
 
 export interface EmailData {
   customer_name: string;
@@ -18,17 +14,48 @@ export interface EmailData {
   order_items: string;
   invoice_number: string;
   payment_type: string;
-  [key: string]: string; // Add index signature to fix TypeScript error
+  [key: string]: string;
 }
+
+// Initialize EmailJS with retry logic
+const initializeEmailJS = async (): Promise<boolean> => {
+  if (!window.emailjs) {
+    console.log('EmailJS not loaded yet, waiting...');
+    return new Promise((resolve) => {
+      const checkEmailJS = () => {
+        if (window.emailjs) {
+          console.log('EmailJS loaded, initializing...');
+          window.emailjs.init("Jd-xUzfI7TVry1bHs");
+          resolve(true);
+        } else {
+          setTimeout(checkEmailJS, 100);
+        }
+      };
+      checkEmailJS();
+    });
+  }
+  
+  // Already initialized
+  return true;
+};
 
 export const sendPaymentConfirmationEmail = async (emailData: EmailData): Promise<boolean> => {
   try {
+    console.log('Initializing EmailJS before sending email...');
+    
+    // Ensure EmailJS is initialized
+    const initialized = await initializeEmailJS();
+    if (!initialized) {
+      console.error('EmailJS failed to initialize');
+      return false;
+    }
+
     console.log('Sending payment confirmation email:', emailData);
     
     // Send email using EmailJS
-    const result = await emailjs.send(
-      EMAILJS_CONFIG.SERVICE_ID,
-      EMAILJS_CONFIG.TEMPLATE_ID,
+    const result = await window.emailjs.send(
+      'service_88341ce',
+      'template_a49s36z',
       emailData
     );
 

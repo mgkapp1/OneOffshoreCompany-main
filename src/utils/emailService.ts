@@ -52,10 +52,9 @@ export const sendPaymentConfirmationEmail = async (emailData: EmailData): Promis
 
     console.log('Sending payment confirmation email:', emailData);
     
-    // Try different parameter formats to find what works with your template
+    // Use the exact parameter names that match your EmailJS template
     const templateParams = {
-      // Try format 1: Direct recipient
-      to_email: emailData.customer_email,
+      email: emailData.customer_email, // This matches your template's {{email}}
       customer_name: emailData.customer_name,
       customer_email: emailData.customer_email,
       order_amount: emailData.order_amount,
@@ -64,12 +63,7 @@ export const sendPaymentConfirmationEmail = async (emailData: EmailData): Promis
       invoice_number: emailData.invoice_number,
       payment_type: emailData.payment_type,
       reply_to: emailData.customer_email,
-      from_name: "One Offshore Company",
-      
-      // Try format 2: Alternative field names
-      to: emailData.customer_email,
-      subject: `Payment Confirmation - ${emailData.invoice_number || 'New Order'}`,
-      message: `Thank you ${emailData.customer_name} for your payment of ${emailData.order_amount} for ${emailData.jurisdiction}.`
+      from_name: "One Offshore Company"
     };
 
     console.log('Template parameters:', templateParams);

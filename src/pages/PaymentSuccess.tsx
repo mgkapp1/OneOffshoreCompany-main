@@ -15,32 +15,38 @@ const PaymentSuccess = () => {
   const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('PaymentSuccess mounted - clearing cart and stopping loading');
-    
-    // Clear cart immediately
-    clearCart();
-    
-    // Stop loading immediately - show success page
-    setIsLoading(false);
-    
-    // Extract customer data from URL parameters (for invoice payments) or use cart data
-    const customerName = searchParams.get('name') || 'Customer';
-    const customerEmail = searchParams.get('customer_email') || searchParams.get('email') || '';
-    const phone = searchParams.get('phone') || '';
-    const companyName = searchParams.get('company') || '';
-    const invoiceNumber = searchParams.get('invoice') || searchParams.get('$ProFormaID') || '';
-    const jurisdiction = searchParams.get('jurisdiction') || '';
-    const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
-    const amount = searchParams.get('amount') || state.total.toString();
-
-    console.log('Preparing to send email in background...');
-
-    // Send email in background after a short delay
-    const emailTimer = setTimeout(async () => {
+    const processPaymentSuccess = async () => {
       try {
-        console.log('Sending background email...');
+        console.log('PaymentSuccess mounted - checking sessionStorage');
         
-        // Prepare email data
+        // Check if we've already processed this payment
+        const paymentProcessed = sessionStorage.getItem('paymentEmailSent');
+        
+        if (paymentProcessed) {
+          console.log('Payment already processed in this session');
+          setIsLoading(false);
+          return;
+        }
+
+        // Mark as processed immediately
+        sessionStorage.setItem('paymentEmailSent', 'true');
+        
+        // Clear cart
+        clearCart();
+        
+        // Extract customer data
+        const customerName = searchParams.get('name') || 'Customer';
+        const customerEmail = searchParams.get('customer_email') || searchParams.get('email') || '';
+        const phone = searchParams.get('phone') || '';
+        const companyName = searchParams.get('company') || '';
+        const invoiceNumber = searchParams.get('invoice') || searchParams.get('$ProFormaID') || '';
+        const jurisdiction = searchParams.get('jurisdiction') || '';
+        const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
+        const amount = searchParams.get('amount') || state.total.toString();
+
+        console.log('Sending payment confirmation email...');
+
+        // Prepare and send email
         const emailData: EmailData = {
           customer_name: customerName,
           customer_email: customerEmail,
@@ -54,25 +60,31 @@ const PaymentSuccess = () => {
         };
 
         const success = await sendPaymentConfirmationEmail(emailData);
+        
         if (success) {
-          console.log('Background email sent successfully');
+          console.log('Payment confirmation email sent successfully');
           setEmailSent(true);
         } else {
-          console.error('Failed to send background email');
+          console.error('Failed to send payment confirmation email');
           setEmailError('Failed to send confirmation email. Our team will contact you shortly.');
         }
-      } catch (error) {
-        console.error('Error in background email process:', error);
-        setEmailError('Email service temporarily unavailable. Our team will contact you shortly.');
-      }
-    }, 1000);
 
-    // Cleanup timer only on component unmount
-    return () => {
-      console.log('PaymentSuccess cleanup - clearing email timer (component unmounting)');
-      clearTimeout(emailTimer);
+      } catch (error) {
+        console.error('Error processing payment success:', error);
+        setEmailError('An error occurred. Our team will contact you shortly.');
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [clearCart, searchParams, state.items, state.total]); // Added state.total dependency
+
+    processPaymentSuccess();
+
+    // Cleanup: Remove sessionStorage when component unmounts (user leaves page)
+    return () => {
+      console.log('PaymentSuccess cleanup - removing sessionStorage');
+      sessionStorage.removeItem('paymentEmailSent');
+    };
+  }, [clearCart, searchParams, state.items, state.total]);
 
   if (isLoading) {
     return (

@@ -15,6 +15,22 @@ const SeychellesPage = () => {
       jurisdiction: 'Seychelles',
       type: 'formation'
     });
+    
+    // Redirect to Popular Jurisdictions section
+    setTimeout(() => {
+      const jurisdictionsSection = document.getElementById('jurisdictions');
+      if (jurisdictionsSection) {
+        const header = document.querySelector('header');
+        const headerHeight = header ? header.offsetHeight : 0;
+        const elementPosition = jurisdictionsSection.getBoundingClientRect().top + window.pageYOffset;
+        const offsetPosition = elementPosition - headerHeight - 20;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   };
 
   return (

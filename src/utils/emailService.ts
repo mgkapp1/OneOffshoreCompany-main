@@ -18,6 +18,7 @@ export interface EmailData {
   order_items: string;
   invoice_number: string;
   payment_type: string;
+  [key: string]: string; // Add index signature to fix TypeScript error
 }
 
 export const sendPaymentConfirmationEmail = async (emailData: EmailData): Promise<boolean> => {

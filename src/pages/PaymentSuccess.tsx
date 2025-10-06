@@ -72,7 +72,7 @@ const PaymentSuccess = () => {
       console.log('PaymentSuccess cleanup - clearing email timer');
       clearTimeout(emailTimer);
     };
-  }, [clearCart]); // Added clearCart dependency
+  }, [clearCart, searchParams]); // Added searchParams dependency
 
   if (isLoading) {
     return (

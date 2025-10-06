@@ -44,9 +44,9 @@ const PaymentSuccess = () => {
         const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
         const amount = searchParams.get('amount') || state.total.toString();
 
-        console.log('Sending payment confirmation email...');
+        console.log('Sending payment confirmation email via client-side...');
 
-        // Prepare and send email
+        // Prepare and send email using client-side EmailJS
         const emailData: EmailData = {
           customer_name: customerName,
           customer_email: customerEmail,
@@ -62,10 +62,10 @@ const PaymentSuccess = () => {
         const success = await sendPaymentConfirmationEmail(emailData);
         
         if (success) {
-          console.log('Payment confirmation email sent successfully');
+          console.log('Payment confirmation email sent successfully via client-side');
           setEmailSent(true);
         } else {
-          console.error('Failed to send payment confirmation email');
+          console.error('Failed to send payment confirmation email via client-side');
           setEmailError('Failed to send confirmation email. Our team will contact you shortly.');
         }
 

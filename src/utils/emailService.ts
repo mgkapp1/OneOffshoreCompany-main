@@ -1,4 +1,4 @@
-// Email service using our API route to avoid CORS issues
+// Email service using client-side EmailJS
 
 export interface EmailData {
   customer_name: string;
@@ -13,32 +13,38 @@ export interface EmailData {
 
 export const sendPaymentConfirmationEmail = async (emailData: EmailData): Promise<boolean> => {
   try {
-    console.log('Sending payment confirmation email via API:', emailData);
+    console.log('Sending payment confirmation email via client-side EmailJS:', emailData);
     
-    // Use our server-side API route to avoid CORS issues
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
+    // Import EmailJS dynamically to avoid SSR issues
+    const emailjs = await import('@emailjs/browser');
     
-    if (result.success) {
-      console.log('Email sent successfully via API');
-      return true;
-    } else {
-      console.error('API returned error:', result.message);
-      return false;
-    }
+    const templateParams = {
+      email: emailData.customer_email,
+      customer_name: emailData.customer_name,
+      customer_email: emailData.customer_email,
+      order_amount: emailData.order_amount,
+      jurisdiction: emailData.jurisdiction,
+      order_items: emailData.order_items,
+      invoice_number: emailData.invoice_number,
+      payment_type: emailData.payment_type,
+      reply_to: emailData.customer_email,
+      from_name: "One Offshore Company"
+    };
+
+    // Send email using client-side EmailJS
+    const result = await emailjs.send(
+      'service_88341ce',
+      'template_a49s36z',
+      templateParams,
+      {
+        publicKey: 'Jd-xUzfI7TVry1bHs',
+      }
+    );
+
+    console.log('Email sent successfully via client-side:', result);
+    return true;
   } catch (error) {
-    console.error('Failed to send email via API:', error);
+    console.error('Failed to send email via client-side EmailJS:', error);
     return false;
   }
 };

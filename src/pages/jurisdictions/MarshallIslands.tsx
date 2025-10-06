@@ -15,6 +15,8 @@ const MarshallIslandsPage = () => {
       jurisdiction: 'Marshall Islands',
       type: 'formation'
     });
+    // Redirect to Popular Jurisdictions section on home page
+    window.location.href = '/#jurisdictions';
   };
 
   return (

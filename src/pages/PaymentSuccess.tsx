@@ -67,12 +67,12 @@ const PaymentSuccess = () => {
       }
     }, 1000);
 
-    // Cleanup timer if component unmounts
+    // Cleanup timer only on component unmount
     return () => {
-      console.log('PaymentSuccess cleanup - clearing email timer');
+      console.log('PaymentSuccess cleanup - clearing email timer (component unmounting)');
       clearTimeout(emailTimer);
     };
-  }, [clearCart, searchParams, state.items]); // Added state.items dependency
+  }, [clearCart, searchParams, state.items, state.total]); // Added state.total dependency
 
   if (isLoading) {
     return (

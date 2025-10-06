@@ -1,11 +1,12 @@
 "use client";
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 
 const SeychellesPage = () => {
   const { addItem } = useCart();
+  const navigate = useNavigate();
 
   const handleAddToCart = () => {
     addItem({
@@ -16,7 +17,10 @@ const SeychellesPage = () => {
       type: 'formation'
     });
     
-    // Redirect to Popular Jurisdictions section
+    // Navigate to homepage first, then scroll to jurisdictions section
+    navigate('/');
+    
+    // Use a slightly longer timeout to ensure the homepage has loaded
     setTimeout(() => {
       const jurisdictionsSection = document.getElementById('jurisdictions');
       if (jurisdictionsSection) {
@@ -30,7 +34,7 @@ const SeychellesPage = () => {
           behavior: 'smooth'
         });
       }
-    }, 100);
+    }, 300);
   };
 
   return (

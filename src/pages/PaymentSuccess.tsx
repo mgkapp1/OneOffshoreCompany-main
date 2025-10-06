@@ -72,7 +72,7 @@ const PaymentSuccess = () => {
       console.log('PaymentSuccess cleanup - clearing email timer');
       clearTimeout(emailTimer);
     };
-  }, []); // Empty dependencies - run only once on mount
+  }, [clearCart]); // Added clearCart dependency
 
   if (isLoading) {
     return (

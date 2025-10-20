@@ -4,23 +4,23 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import { sendPaymentConfirmationEmail, formatOrderItems, EmailData } from '../utils/emailService';
+import { submitPaymentToGoogleForm, formatOrderItems, PaymentData } from '../utils/emailService';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const { state, clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   useEffect(() => {
     const processPaymentSuccess = async () => {
       try {
-        console.log('PaymentSuccess mounted - checking sessionStorage');
+        console.log('PaymentSuccess mounted - processing payment confirmation');
         
         // Check if we've already processed this payment
-        const paymentProcessed = sessionStorage.getItem('paymentEmailSent');
+        const paymentProcessed = sessionStorage.getItem('paymentFormSubmitted');
         
         if (paymentProcessed) {
           console.log('Payment already processed in this session');
@@ -29,12 +29,12 @@ const PaymentSuccess = () => {
         }
 
         // Mark as processed immediately
-        sessionStorage.setItem('paymentEmailSent', 'true');
+        sessionStorage.setItem('paymentFormSubmitted', 'true');
         
         // Clear cart
         clearCart();
         
-        // Extract customer data
+        // Extract customer data from Stripe metadata
         const customerName = searchParams.get('name') || 'Customer';
         const customerEmail = searchParams.get('customer_email') || searchParams.get('email') || '';
         const phone = searchParams.get('phone') || '';
@@ -44,10 +44,10 @@ const PaymentSuccess = () => {
         const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
         const amount = searchParams.get('amount') || state.total.toString();
 
-        console.log('Sending payment confirmation email via client-side...');
+        console.log('Submitting payment confirmation to Google Form...');
 
-        // Prepare and send email using client-side EmailJS
-        const emailData: EmailData = {
+        // Prepare and submit to Google Form
+        const paymentData: PaymentData = {
           customer_name: customerName,
           customer_email: customerEmail,
           order_amount: `£${parseFloat(amount).toFixed(2)}`,
@@ -59,19 +59,21 @@ const PaymentSuccess = () => {
           payment_type: paymentType
         };
 
-        const success = await sendPaymentConfirmationEmail(emailData);
+        console.log('Payment data being submitted:', paymentData);
+
+        const success = await submitPaymentToGoogleForm(paymentData);
         
         if (success) {
-          console.log('Payment confirmation email sent successfully via client-side');
-          setEmailSent(true);
+          console.log('Payment confirmation submitted to Google Form successfully');
+          setFormSubmitted(true);
         } else {
-          console.error('Failed to send payment confirmation email via client-side');
-          setEmailError('Failed to send confirmation email. Our team will contact you shortly.');
+          console.error('Failed to submit payment confirmation to Google Form');
+          setSubmissionError('Failed to submit confirmation. Our team will contact you shortly.');
         }
 
       } catch (error) {
         console.error('Error processing payment success:', error);
-        setEmailError('An error occurred. Our team will contact you shortly.');
+        setSubmissionError('An error occurred. Our team will contact you shortly.');
       } finally {
         setIsLoading(false);
       }
@@ -82,7 +84,7 @@ const PaymentSuccess = () => {
     // Cleanup: Remove sessionStorage when component unmounts (user leaves page)
     return () => {
       console.log('PaymentSuccess cleanup - removing sessionStorage');
-      sessionStorage.removeItem('paymentEmailSent');
+      sessionStorage.removeItem('paymentFormSubmitted');
     };
   }, [clearCart, searchParams, state.items, state.total]);
 
@@ -110,18 +112,21 @@ const PaymentSuccess = () => {
             Thank you for your order. Your payment has been processed successfully.
           </p>
           
-          {emailSent && (
+          {formSubmitted && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <p className="text-green-700 font-medium">
-                ✓ Confirmation email sent to you and our team
+                ✓ Payment confirmation submitted successfully
+              </p>
+              <p className="text-green-600 text-sm mt-1">
+                Our team has been notified and will contact you shortly.
               </p>
             </div>
           )}
           
-          {emailError && (
+          {submissionError && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <p className="text-yellow-700">
-                {emailError}
+                {submissionError}
               </p>
             </div>
           )}

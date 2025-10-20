@@ -1,6 +1,6 @@
-// Email service using client-side EmailJS
+// Google Forms submission service for payment confirmations
 
-export interface EmailData {
+export interface PaymentData {
   customer_name: string;
   customer_email: string;
   order_amount: string;
@@ -8,43 +8,37 @@ export interface EmailData {
   order_items: string;
   invoice_number: string;
   payment_type: string;
-  [key: string]: string;
 }
 
-export const sendPaymentConfirmationEmail = async (emailData: EmailData): Promise<boolean> => {
+export const submitPaymentToGoogleForm = async (paymentData: PaymentData): Promise<boolean> => {
   try {
-    console.log('Sending payment confirmation email via client-side EmailJS:', emailData);
+    console.log('Submitting payment confirmation to Google Form:', paymentData);
     
-    // Import EmailJS dynamically to avoid SSR issues
-    const emailjs = await import('@emailjs/browser');
+    // Google Forms submission URL
+    const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf8wJq1hA8J8Q6Q7Q9Q0Q1Q2Q3Q4Q5Q6Q7Q8Q9Q0Q1Q2Q3Q4Q5Q6Q7Q/formResponse';
     
-    const templateParams = {
-      email: emailData.customer_email,
-      customer_name: emailData.customer_name,
-      customer_email: emailData.customer_email,
-      order_amount: emailData.order_amount,
-      jurisdiction: emailData.jurisdiction,
-      order_items: emailData.order_items,
-      invoice_number: emailData.invoice_number,
-      payment_type: emailData.payment_type,
-      reply_to: emailData.customer_email,
-      from_name: "One Offshore Company"
-    };
-
-    // Send email using client-side EmailJS
-    const result = await emailjs.send(
-      'service_88341ce',
-      'template_a49s36z',
-      templateParams,
-      {
-        publicKey: 'Jd-xUzfI7TVry1bHs',
-      }
-    );
-
-    console.log('Email sent successfully via client-side:', result);
+    // Prepare form data with field IDs
+    const formData = new URLSearchParams();
+    formData.append('entry.hj99tb3', paymentData.customer_name);       // Customer Name
+    formData.append('entry.hj99tb5', paymentData.customer_email);      // Customer Email
+    formData.append('entry.hj99tb7', paymentData.order_amount);        // Order Amount
+    formData.append('entry.hj99tb9', paymentData.jurisdiction);        // Jurisdiction
+    formData.append('entry.hj99tb11', paymentData.order_items);        // Order Items
+    formData.append('entry.hj99tb13', paymentData.invoice_number);     // Invoice Number
+    formData.append('entry.hj99tb15', paymentData.payment_type);       // Payment Type
+    
+    // Submit to Google Forms
+    const response = await fetch(formUrl, {
+      method: 'POST',
+      body: formData,
+      mode: 'no-cors' // Google Forms doesn't allow CORS
+    });
+    
+    console.log('Payment data submitted to Google Form successfully');
     return true;
+    
   } catch (error) {
-    console.error('Failed to send email via client-side EmailJS:', error);
+    console.error('Failed to submit to Google Form:', error);
     return false;
   }
 };

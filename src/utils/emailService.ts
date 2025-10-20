@@ -24,7 +24,7 @@ export const submitPaymentNotification = async (paymentData: PaymentData): Promi
   }
 };
 
-// Submit to Google Forms with correct field IDs
+// Submit to Google Forms using form submission method (no CORS issues)
 const submitToGoogleForms = async (paymentData: PaymentData): Promise<boolean> => {
   return new Promise((resolve) => {
     try {
@@ -32,11 +32,17 @@ const submitToGoogleForms = async (paymentData: PaymentData): Promise<boolean> =
       
       const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSe_pPwsjgbV112Y0h0XtFX8VlbWBrwOf_kyF04rOxygUMA0QQ/formResponse';
       
+      // Create a hidden iframe to handle the form submission
+      const iframe = document.createElement('iframe');
+      iframe.name = 'google-forms-submission';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
       // Create form with CORRECT field IDs
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = formUrl;
-      form.target = '_self'; // Submit in same window
+      form.target = 'google-forms-submission'; // Submit to iframe
       form.style.display = 'none';
       
       // Add fields with correct IDs
@@ -61,18 +67,37 @@ const submitToGoogleForms = async (paymentData: PaymentData): Promise<boolean> =
       
       document.body.appendChild(form);
       
+      // Add load event listener to iframe to detect when submission completes
+      iframe.onload = () => {
+        console.log('Google Forms submission completed');
+        // Clean up
+        setTimeout(() => {
+          if (document.body.contains(form)) {
+            document.body.removeChild(form);
+          }
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+          resolve(true);
+        }, 1000);
+      };
+      
       // Submit the form
       form.submit();
       
       console.log('Google Forms submitted successfully with fields:', fields);
       
-      // Remove form after submission
+      // Fallback: if iframe doesn't load within 5 seconds, assume success
       setTimeout(() => {
         if (document.body.contains(form)) {
           document.body.removeChild(form);
         }
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+        console.log('Google Forms submission timeout - assuming success');
         resolve(true);
-      }, 1000);
+      }, 5000);
       
     } catch (error) {
       console.error('Google Forms submission failed:', error);

@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle, ArrowLeft } from 'lucide-react';
+import { CheckCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import { submitPaymentToGoogleForm, formatOrderItems, PaymentData } from '../utils/emailService';
+import { submitPaymentToGoogleForm, formatOrderItems, PaymentData, testGoogleFormSubmission } from '../utils/emailService';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -13,72 +13,73 @@ const PaymentSuccess = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  const processPaymentSuccess = async () => {
+    try {
+      console.log('PaymentSuccess mounted - processing payment confirmation');
+      
+      // Check if we've already processed this payment
+      const paymentProcessed = sessionStorage.getItem('paymentFormSubmitted');
+      
+      if (paymentProcessed) {
+        console.log('Payment already processed in this session');
+        setIsLoading(false);
+        return;
+      }
+
+      // Mark as processed immediately
+      sessionStorage.setItem('paymentFormSubmitted', 'true');
+      
+      // Clear cart
+      clearCart();
+      
+      // Extract customer data from Stripe metadata
+      const customerName = searchParams.get('name') || 'Customer';
+      const customerEmail = searchParams.get('customer_email') || searchParams.get('email') || '';
+      const phone = searchParams.get('phone') || '';
+      const companyName = searchParams.get('company') || '';
+      const invoiceNumber = searchParams.get('invoice') || searchParams.get('$ProFormaID') || '';
+      const jurisdiction = searchParams.get('jurisdiction') || '';
+      const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
+      const amount = searchParams.get('amount') || state.total.toString();
+
+      console.log('Submitting payment confirmation to Google Form...');
+
+      // Prepare and submit to Google Form
+      const paymentData: PaymentData = {
+        customer_name: customerName,
+        customer_email: customerEmail,
+        order_amount: `£${parseFloat(amount).toFixed(2)}`,
+        jurisdiction: jurisdiction || (state.items.length > 0 ? state.items.map(item => item.jurisdiction).join(', ') : ''),
+        order_items: state.items.length > 0 
+          ? formatOrderItems(state.items)
+          : `Invoice Payment - ${invoiceNumber}`,
+        invoice_number: invoiceNumber,
+        payment_type: paymentType
+      };
+
+      console.log('Payment data being submitted:', paymentData);
+
+      const success = await submitPaymentToGoogleForm(paymentData);
+      
+      if (success) {
+        console.log('Payment confirmation submitted to Google Form successfully');
+        setFormSubmitted(true);
+      } else {
+        console.error('Failed to submit payment confirmation to Google Form');
+        setSubmissionError('Failed to submit confirmation. Our team will contact you shortly.');
+      }
+
+    } catch (error) {
+      console.error('Error processing payment success:', error);
+      setSubmissionError('An error occurred. Our team will contact you shortly.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const processPaymentSuccess = async () => {
-      try {
-        console.log('PaymentSuccess mounted - processing payment confirmation');
-        
-        // Check if we've already processed this payment
-        const paymentProcessed = sessionStorage.getItem('paymentFormSubmitted');
-        
-        if (paymentProcessed) {
-          console.log('Payment already processed in this session');
-          setIsLoading(false);
-          return;
-        }
-
-        // Mark as processed immediately
-        sessionStorage.setItem('paymentFormSubmitted', 'true');
-        
-        // Clear cart
-        clearCart();
-        
-        // Extract customer data from Stripe metadata
-        const customerName = searchParams.get('name') || 'Customer';
-        const customerEmail = searchParams.get('customer_email') || searchParams.get('email') || '';
-        const phone = searchParams.get('phone') || '';
-        const companyName = searchParams.get('company') || '';
-        const invoiceNumber = searchParams.get('invoice') || searchParams.get('$ProFormaID') || '';
-        const jurisdiction = searchParams.get('jurisdiction') || '';
-        const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
-        const amount = searchParams.get('amount') || state.total.toString();
-
-        console.log('Submitting payment confirmation to Google Form...');
-
-        // Prepare and submit to Google Form
-        const paymentData: PaymentData = {
-          customer_name: customerName,
-          customer_email: customerEmail,
-          order_amount: `£${parseFloat(amount).toFixed(2)}`,
-          jurisdiction: jurisdiction || (state.items.length > 0 ? state.items.map(item => item.jurisdiction).join(', ') : ''),
-          order_items: state.items.length > 0 
-            ? formatOrderItems(state.items)
-            : `Invoice Payment - ${invoiceNumber}`,
-          invoice_number: invoiceNumber,
-          payment_type: paymentType
-        };
-
-        console.log('Payment data being submitted:', paymentData);
-
-        const success = await submitPaymentToGoogleForm(paymentData);
-        
-        if (success) {
-          console.log('Payment confirmation submitted to Google Form successfully');
-          setFormSubmitted(true);
-        } else {
-          console.error('Failed to submit payment confirmation to Google Form');
-          setSubmissionError('Failed to submit confirmation. Our team will contact you shortly.');
-        }
-
-      } catch (error) {
-        console.error('Error processing payment success:', error);
-        setSubmissionError('An error occurred. Our team will contact you shortly.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     processPaymentSuccess();
 
     // Cleanup: Remove sessionStorage when component unmounts (user leaves page)
@@ -87,6 +88,18 @@ const PaymentSuccess = () => {
       sessionStorage.removeItem('paymentFormSubmitted');
     };
   }, [clearCart, searchParams, state.items, state.total]);
+
+  const handleTestForm = async () => {
+    setTestResult('Testing form submission...');
+    const result = await testGoogleFormSubmission();
+    setTestResult(result ? 'Form test successful!' : 'Form test failed!');
+  };
+
+  const handleRetrySubmission = async () => {
+    setIsLoading(true);
+    setSubmissionError(null);
+    await processPaymentSuccess();
+  };
 
   if (isLoading) {
     return (
@@ -125,9 +138,16 @@ const PaymentSuccess = () => {
           
           {submissionError && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <p className="text-yellow-700">
+              <p className="text-yellow-700 mb-4">
                 {submissionError}
               </p>
+              <button
+                onClick={handleRetrySubmission}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-yellow-600 text-white hover:bg-yellow-700 h-9 rounded-md px-4"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry Submission
+              </button>
             </div>
           )}
           
@@ -136,6 +156,20 @@ const PaymentSuccess = () => {
               Order ID: {sessionId}
             </p>
           )}
+          
+          {/* Test Section (for debugging) */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-blue-800 font-semibold mb-2">Debug Information</p>
+            <button
+              onClick={handleTestForm}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-9 rounded-md px-4 mb-2"
+            >
+              Test Form Submission
+            </button>
+            {testResult && (
+              <p className="text-blue-700 text-sm">{testResult}</p>
+            )}
+          </div>
           
           <div className="space-y-4">
             <p className="text-gray-700">

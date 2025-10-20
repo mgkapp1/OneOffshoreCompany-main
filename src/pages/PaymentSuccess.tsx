@@ -2,18 +2,16 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle, ArrowLeft, RefreshCw, Mail, HelpCircle, Eye } from 'lucide-react';
+import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import { submitPaymentNotification, formatOrderItems, PaymentData, testNotificationSystem, getGoogleFormsHelp, viewStoredNotifications } from '../utils/emailService';
+import { submitPaymentNotification, formatOrderItems, PaymentData } from '../utils/emailService';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const { state, clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
-  const [notificationSent, setNotificationSent] = useState(false);
-  const [notificationError, setNotificationError] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<string | null>(null);
+  const [notificationStatus, setNotificationStatus] = useState<string>('Processing your payment...');
 
   const processPaymentSuccess = async () => {
     try {
@@ -44,9 +42,9 @@ const PaymentSuccess = () => {
       const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
       const amount = searchParams.get('amount') || state.total.toString();
 
-      console.log('Sending payment notifications...');
+      console.log('Submitting payment to Google Forms...');
 
-      // Prepare and submit notifications
+      // Prepare payment data
       const paymentData: PaymentData = {
         customer_name: customerName,
         customer_email: customerEmail,
@@ -59,21 +57,24 @@ const PaymentSuccess = () => {
         payment_type: paymentType
       };
 
-      console.log('Payment data for notifications:', paymentData);
+      console.log('Payment data for Google Forms:', paymentData);
 
+      setNotificationStatus('Submitting to Google Forms...');
+
+      // Submit to Google Forms
       const success = await submitPaymentNotification(paymentData);
       
       if (success) {
-        console.log('Payment notifications sent successfully');
-        setNotificationSent(true);
+        setNotificationStatus('✓ Submitted to Google Forms Successfully');
+        console.log('Google Forms submission completed');
       } else {
-        console.error('Some notification methods failed');
-        setNotificationError('Some notifications failed. Our team will still contact you shortly.');
+        setNotificationStatus('⚠ Google Forms Submission Failed');
+        console.error('Google Forms submission failed');
       }
 
     } catch (error) {
       console.error('Error processing payment success:', error);
-      setNotificationError('An error occurred. Our team will contact you shortly.');
+      setNotificationStatus('❌ Processing Error');
     } finally {
       setIsLoading(false);
     }
@@ -89,24 +90,13 @@ const PaymentSuccess = () => {
     };
   }, [clearCart, searchParams, state.items, state.total]);
 
-  const handleTestNotifications = async () => {
-    setTestResult('Testing notification system...');
-    const result = await testNotificationSystem();
-    setTestResult(result ? 'Notification test successful!' : 'Some notifications failed!');
-  };
-
-  const handleRetryNotifications = async () => {
-    setIsLoading(true);
-    setNotificationError(null);
-    await processPaymentSuccess();
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Processing your payment...</p>
+          <p className="text-sm text-gray-500 mt-2">Submitting to Google Forms</p>
         </div>
       </div>
     );
@@ -125,31 +115,30 @@ const PaymentSuccess = () => {
             Thank you for your order. Your payment has been processed successfully.
           </p>
           
-          {notificationSent && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <p className="text-green-700 font-medium">
-                ✓ Payment notifications sent successfully
-              </p>
-              <p className="text-green-600 text-sm mt-1">
-                Our team has been notified and will contact you shortly.
-              </p>
-            </div>
-          )}
-          
-          {notificationError && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <p className="text-yellow-700 mb-4">
-                {notificationError}
-              </p>
-              <button
-                onClick={handleRetryNotifications}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-yellow-600 text-white hover:bg-yellow-700 h-9 rounded-md px-4"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Retry Notifications
-              </button>
-            </div>
-          )}
+          {/* Notification Status */}
+          <div className={`border rounded-lg p-4 mb-6 ${
+            notificationStatus.includes('✓') ? 'bg-green-50 border-green-200' : 
+            notificationStatus.includes('❌') ? 'bg-red-50 border-red-200' : 
+            'bg-yellow-50 border-yellow-200'
+          }`}>
+            <h3 className={`font-semibold mb-2 ${
+              notificationStatus.includes('✓') ? 'text-green-800' : 
+              notificationStatus.includes('❌') ? 'text-red-800' : 
+              'text-yellow-800'
+            }`}>
+              {notificationStatus}
+            </h3>
+            <p className={`text-sm ${
+              notificationStatus.includes('✓') ? 'text-green-700' : 
+              notificationStatus.includes('❌') ? 'text-red-700' : 
+              'text-yellow-700'
+            }`}>
+              {notificationStatus.includes('✓') 
+                ? 'Your order has been submitted to our system. Our team will contact you within 24 hours.'
+                : 'There was an issue submitting your order. Please contact info@oneoffshorecompany.com for assistance.'
+              }
+            </p>
+          </div>
           
           {sessionId && (
             <p className="text-sm text-gray-500 mb-6">
@@ -157,40 +146,9 @@ const PaymentSuccess = () => {
             </p>
           )}
           
-          {/* Test Section */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-blue-800 font-semibold mb-2">Notification System</p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <button
-                onClick={handleTestNotifications}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-9 rounded-md px-4"
-              >
-                <Mail className="w-4 h-4" />
-                Test Notifications
-              </button>
-              <button
-                onClick={getGoogleFormsHelp}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-purple-600 text-white hover:bg-purple-700 h-9 rounded-md px-4"
-              >
-                <HelpCircle className="w-4 h-4" />
-                Field Help
-              </button>
-              <button
-                onClick={viewStoredNotifications}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 text-white hover:bg-green-700 h-9 rounded-md px-4"
-              >
-                <Eye className="w-4 h-4" />
-                View Notifications
-              </button>
-            </div>
-            {testResult && (
-              <p className="text-blue-700 text-sm mt-2">{testResult}</p>
-            )}
-          </div>
-          
           <div className="space-y-4">
             <p className="text-gray-700">
-              You will receive email confirmations shortly with your order details and next steps for your company formation.
+              Our team will contact you within 24 hours to guide you through the next steps of your company formation process.
             </p>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">

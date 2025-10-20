@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle, ArrowLeft, RefreshCw, Mail, HelpCircle } from 'lucide-react';
+import { CheckCircle, ArrowLeft, RefreshCw, Mail, HelpCircle, Eye } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import { submitPaymentNotification, formatOrderItems, PaymentData, testNotificationSystem, getGoogleFormsHelp } from '../utils/emailService';
+import { submitPaymentNotification, formatOrderItems, PaymentData, testNotificationSystem, getGoogleFormsHelp, viewStoredNotifications } from '../utils/emailService';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -173,7 +173,14 @@ const PaymentSuccess = () => {
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-purple-600 text-white hover:bg-purple-700 h-9 rounded-md px-4"
               >
                 <HelpCircle className="w-4 h-4" />
-                Google Forms Help
+                Field Help
+              </button>
+              <button
+                onClick={viewStoredNotifications}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 text-white hover:bg-green-700 h-9 rounded-md px-4"
+              >
+                <Eye className="w-4 h-4" />
+                View Notifications
               </button>
             </div>
             {testResult && (

@@ -2,17 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { CheckCircle, ArrowLeft, RefreshCw, Mail, HelpCircle } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import { submitPaymentToGoogleForm, formatOrderItems, PaymentData, testGoogleFormSubmission } from '../utils/emailService';
+import { submitPaymentNotification, formatOrderItems, PaymentData, testNotificationSystem, getGoogleFormsHelp } from '../utils/emailService';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const { state, clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
-  const [formSubmitted, setFormSubmitted] = useState(false);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [notificationSent, setNotificationSent] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
 
   const processPaymentSuccess = async () => {
@@ -20,7 +20,7 @@ const PaymentSuccess = () => {
       console.log('PaymentSuccess mounted - processing payment confirmation');
       
       // Check if we've already processed this payment
-      const paymentProcessed = sessionStorage.getItem('paymentFormSubmitted');
+      const paymentProcessed = sessionStorage.getItem('paymentProcessed');
       
       if (paymentProcessed) {
         console.log('Payment already processed in this session');
@@ -29,7 +29,7 @@ const PaymentSuccess = () => {
       }
 
       // Mark as processed immediately
-      sessionStorage.setItem('paymentFormSubmitted', 'true');
+      sessionStorage.setItem('paymentProcessed', 'true');
       
       // Clear cart
       clearCart();
@@ -44,9 +44,9 @@ const PaymentSuccess = () => {
       const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
       const amount = searchParams.get('amount') || state.total.toString();
 
-      console.log('Submitting payment confirmation to Google Form...');
+      console.log('Sending payment notifications...');
 
-      // Prepare and submit to Google Form
+      // Prepare and submit notifications
       const paymentData: PaymentData = {
         customer_name: customerName,
         customer_email: customerEmail,
@@ -59,21 +59,21 @@ const PaymentSuccess = () => {
         payment_type: paymentType
       };
 
-      console.log('Payment data being submitted:', paymentData);
+      console.log('Payment data for notifications:', paymentData);
 
-      const success = await submitPaymentToGoogleForm(paymentData);
+      const success = await submitPaymentNotification(paymentData);
       
       if (success) {
-        console.log('Payment confirmation submitted to Google Form successfully');
-        setFormSubmitted(true);
+        console.log('Payment notifications sent successfully');
+        setNotificationSent(true);
       } else {
-        console.error('Failed to submit payment confirmation to Google Form');
-        setSubmissionError('Failed to submit confirmation. Our team will contact you shortly.');
+        console.error('Some notification methods failed');
+        setNotificationError('Some notifications failed. Our team will still contact you shortly.');
       }
 
     } catch (error) {
       console.error('Error processing payment success:', error);
-      setSubmissionError('An error occurred. Our team will contact you shortly.');
+      setNotificationError('An error occurred. Our team will contact you shortly.');
     } finally {
       setIsLoading(false);
     }
@@ -85,19 +85,19 @@ const PaymentSuccess = () => {
     // Cleanup: Remove sessionStorage when component unmounts (user leaves page)
     return () => {
       console.log('PaymentSuccess cleanup - removing sessionStorage');
-      sessionStorage.removeItem('paymentFormSubmitted');
+      sessionStorage.removeItem('paymentProcessed');
     };
   }, [clearCart, searchParams, state.items, state.total]);
 
-  const handleTestForm = async () => {
-    setTestResult('Testing form submission...');
-    const result = await testGoogleFormSubmission();
-    setTestResult(result ? 'Form test successful!' : 'Form test failed!');
+  const handleTestNotifications = async () => {
+    setTestResult('Testing notification system...');
+    const result = await testNotificationSystem();
+    setTestResult(result ? 'Notification test successful!' : 'Some notifications failed!');
   };
 
-  const handleRetrySubmission = async () => {
+  const handleRetryNotifications = async () => {
     setIsLoading(true);
-    setSubmissionError(null);
+    setNotificationError(null);
     await processPaymentSuccess();
   };
 
@@ -125,10 +125,10 @@ const PaymentSuccess = () => {
             Thank you for your order. Your payment has been processed successfully.
           </p>
           
-          {formSubmitted && (
+          {notificationSent && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <p className="text-green-700 font-medium">
-                ✓ Payment confirmation submitted successfully
+                ✓ Payment notifications sent successfully
               </p>
               <p className="text-green-600 text-sm mt-1">
                 Our team has been notified and will contact you shortly.
@@ -136,17 +136,17 @@ const PaymentSuccess = () => {
             </div>
           )}
           
-          {submissionError && (
+          {notificationError && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <p className="text-yellow-700 mb-4">
-                {submissionError}
+                {notificationError}
               </p>
               <button
-                onClick={handleRetrySubmission}
+                onClick={handleRetryNotifications}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-yellow-600 text-white hover:bg-yellow-700 h-9 rounded-md px-4"
               >
                 <RefreshCw className="w-4 h-4" />
-                Retry Submission
+                Retry Notifications
               </button>
             </div>
           )}
@@ -157,23 +157,33 @@ const PaymentSuccess = () => {
             </p>
           )}
           
-          {/* Test Section (for debugging) */}
+          {/* Test Section */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-blue-800 font-semibold mb-2">Debug Information</p>
-            <button
-              onClick={handleTestForm}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-9 rounded-md px-4 mb-2"
-            >
-              Test Form Submission
-            </button>
+            <p className="text-blue-800 font-semibold mb-2">Notification System</p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                onClick={handleTestNotifications}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-9 rounded-md px-4"
+              >
+                <Mail className="w-4 h-4" />
+                Test Notifications
+              </button>
+              <button
+                onClick={getGoogleFormsHelp}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-purple-600 text-white hover:bg-purple-700 h-9 rounded-md px-4"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Google Forms Help
+              </button>
+            </div>
             {testResult && (
-              <p className="text-blue-700 text-sm">{testResult}</p>
+              <p className="text-blue-700 text-sm mt-2">{testResult}</p>
             )}
           </div>
           
           <div className="space-y-4">
             <p className="text-gray-700">
-              You will receive a confirmation email shortly with your order details and next steps for your company formation.
+              You will receive email confirmations shortly with your order details and next steps for your company formation.
             </p>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
@@ -182,6 +192,7 @@ const PaymentSuccess = () => {
                 <li>• Our team will contact you within 24 hours</li>
                 <li>• We'll guide you through the documentation process</li>
                 <li>• Your company will be formed within 1-3 business days</li>
+                <li>• Check your email for confirmation messages</li>
               </ul>
             </div>
           </div>

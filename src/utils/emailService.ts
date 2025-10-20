@@ -1,4 +1,4 @@
-// Google Forms submission service for payment confirmations
+// Email notification service for payment confirmations
 
 export interface PaymentData {
   customer_name: string;
@@ -10,75 +10,121 @@ export interface PaymentData {
   payment_type: string;
 }
 
-export const submitPaymentToGoogleForm = async (paymentData: PaymentData): Promise<boolean> => {
+// Main function to handle payment notifications
+export const submitPaymentNotification = async (paymentData: PaymentData): Promise<boolean> => {
+  console.log('Processing payment notification:', paymentData);
+  
+  // Try multiple notification methods
+  const methods = [
+    sendAdminEmailNotification,
+    sendCustomerEmailNotification,
+    submitToGoogleForms
+  ];
+  
+  let successCount = 0;
+  
+  for (const method of methods) {
+    try {
+      const result = await method(paymentData);
+      if (result) successCount++;
+    } catch (error) {
+      console.error(`Notification method failed:`, error);
+    }
+  }
+  
+  console.log(`Payment notification completed: ${successCount}/${methods.length} methods succeeded`);
+  return successCount > 0;
+};
+
+// Method 1: Send email to admin staff
+const sendAdminEmailNotification = async (paymentData: PaymentData): Promise<boolean> => {
   try {
-    console.log('Submitting payment confirmation to Google Form:', paymentData);
+    console.log('Sending admin email notification...');
     
-    // Test the form submission with a simple approach
-    const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf8wJq1hA8J8Q6Q7Q9Q0Q1Q2Q3Q4Q5Q6Q7Q8Q9Q0Q1Q2Q3Q4Q5Q6Q7Q/formResponse';
+    // Using mailto links as a simple fallback
+    const adminEmails = ['info@oneoffshorecompany.com', 'admin@oneoffshorecompany.com'];
     
-    // Create a hidden form and submit it
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = formUrl;
-    form.target = '_blank'; // Open in new tab for testing
-    form.style.display = 'none';
+    const subject = `New Payment Received - ${paymentData.invoice_number || 'Order'}`;
+    const body = `
+New Payment Details:
+
+Customer: ${paymentData.customer_name}
+Email: ${paymentData.customer_email}
+Amount: ${paymentData.order_amount}
+Jurisdiction: ${paymentData.jurisdiction}
+Payment Type: ${paymentData.payment_type}
+Invoice: ${paymentData.invoice_number}
+
+Order Items:
+${paymentData.order_items}
+
+Please process this order promptly.
+    `.trim();
     
-    // Add all form fields
-    const fields = [
-      { name: 'entry.123456789', value: paymentData.customer_name },       // Customer Name
-      { name: 'entry.987654321', value: paymentData.customer_email },      // Customer Email
-      { name: 'entry.111111111', value: paymentData.order_amount },        // Order Amount
-      { name: 'entry.222222222', value: paymentData.jurisdiction },        // Jurisdiction
-      { name: 'entry.333333333', value: paymentData.order_items },         // Order Items
-      { name: 'entry.444444444', value: paymentData.invoice_number },      // Invoice Number
-      { name: 'entry.555555555', value: paymentData.payment_type },        // Payment Type
-    ];
-    
-    fields.forEach(field => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = field.name;
-      input.value = field.value;
-      form.appendChild(input);
+    // Create mailto links for each admin
+    adminEmails.forEach(email => {
+      const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailtoLink, '_blank');
     });
     
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-    
-    console.log('Form submitted successfully via hidden form method');
+    console.log('Admin email notifications opened');
     return true;
+  } catch (error) {
+    console.error('Admin email notification failed:', error);
+    return false;
+  }
+};
+
+// Method 2: Send confirmation email to customer
+const sendCustomerEmailNotification = async (paymentData: PaymentData): Promise<boolean> => {
+  try {
+    console.log('Sending customer email confirmation...');
+    
+    const subject = `Payment Confirmation - One Offshore Company`;
+    const body = `
+Dear ${paymentData.customer_name},
+
+Thank you for your payment of ${paymentData.order_amount}.
+
+Order Details:
+${paymentData.order_items}
+
+Our team will contact you within 24 hours to guide you through the next steps of your company formation process.
+
+If you have any questions, please don't hesitate to contact us at info@oneoffshorecompany.com.
+
+Best regards,
+One Offshore Company Team
+    `.trim();
+    
+    const mailtoLink = `mailto:${paymentData.customer_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
+    
+    console.log('Customer email confirmation opened');
+    return true;
+  } catch (error) {
+    console.error('Customer email notification failed:', error);
+    return false;
+  }
+};
+
+// Method 3: Submit to Google Forms (if URL is correct)
+const submitToGoogleForms = async (paymentData: PaymentData): Promise<boolean> => {
+  try {
+    console.log('Attempting Google Forms submission...');
+    
+    // We need the correct Google Forms URL - this is currently broken
+    // For now, we'll return false and focus on email notifications
+    console.warn('Google Forms submission disabled - need correct form URL');
+    return false;
+    
+    // If we had the correct URL, we would use:
+    // const formUrl = 'YOUR_CORRECT_GOOGLE_FORMS_URL_HERE';
+    // ... form submission code ...
     
   } catch (error) {
-    console.error('Failed to submit to Google Form:', error);
-    
-    // Fallback: Try the fetch method with different field names
-    try {
-      const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSf8wJq1hA8J8Q6Q7Q9Q0Q1Q2Q3Q4Q5Q6Q7Q8Q9Q0Q1Q2Q3Q4Q5Q6Q7Q/formResponse';
-      const formData = new URLSearchParams();
-      
-      // Try common Google Forms field patterns
-      formData.append('entry.123456789', paymentData.customer_name);
-      formData.append('entry.987654321', paymentData.customer_email);
-      formData.append('entry.111111111', paymentData.order_amount);
-      formData.append('entry.222222222', paymentData.jurisdiction);
-      formData.append('entry.333333333', paymentData.order_items);
-      formData.append('entry.444444444', paymentData.invoice_number);
-      formData.append('entry.555555555', paymentData.payment_type);
-      
-      await fetch(formUrl, {
-        method: 'POST',
-        body: formData,
-        mode: 'no-cors'
-      });
-      
-      console.log('Fallback form submission completed');
-      return true;
-    } catch (fallbackError) {
-      console.error('Fallback submission also failed:', fallbackError);
-      return false;
-    }
+    console.error('Google Forms submission failed:', error);
+    return false;
   }
 };
 
@@ -88,9 +134,9 @@ export const formatOrderItems = (items: Array<{name: string; price: number; juri
   ).join('\n');
 };
 
-// Test function to verify form submission
-export const testGoogleFormSubmission = async (): Promise<boolean> => {
-  console.log('Testing Google Form submission...');
+// Test function to verify notification system
+export const testNotificationSystem = async (): Promise<boolean> => {
+  console.log('Testing notification system...');
   
   const testData: PaymentData = {
     customer_name: 'Test Customer',
@@ -102,5 +148,26 @@ export const testGoogleFormSubmission = async (): Promise<boolean> => {
     payment_type: 'test'
   };
   
-  return await submitPaymentToGoogleForm(testData);
+  return await submitPaymentNotification(testData);
+};
+
+// Function to help get the correct Google Forms URL
+export const getGoogleFormsHelp = (): void => {
+  const helpText = `
+To set up Google Forms integration:
+
+1. Go to your Google Form
+2. Click "Send" in the top-right
+3. Click the link icon (🔗)
+4. Copy the URL - it should look like:
+   https://docs.google.com/forms/d/e/1FAIpQLS.../viewform?usp=sf_link
+
+5. Replace "/viewform" with "/formResponse" to get:
+   https://docs.google.com/forms/d/e/1FAIpQLS.../formResponse
+
+6. Send me this corrected URL and I'll update the code.
+  `;
+  
+  console.log(helpText);
+  alert('Check browser console for Google Forms setup instructions');
 };

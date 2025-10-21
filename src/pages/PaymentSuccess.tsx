@@ -57,70 +57,32 @@ const PaymentSuccess = () => {
         payment_type: customerData.payment_type || 'cart'
       };
 
-      console.log('Sending email directly to Google Apps Script:', emailData);
+      console.log('Attempting to send email to Google Apps Script (no-cors mode):', emailData);
 
-      // Direct call to Google Apps Script with proper error handling
       const googleScriptUrl = 'https://script.google.com/macros/s/AKfycby_78s4mnDdqSxZOv1eMryZL66sq_1sl0eR7JE4CzEDscwGN9LaUojQKl4LbRdWlQUq/exec';
       
-      // Create a form data approach which might work better with Google Apps Script
-      const formData = new FormData();
-      formData.append('email', emailData.email);
-      formData.append('name', emailData.name);
-      formData.append('amount', emailData.amount.toString());
-      formData.append('phone', emailData.phone);
-      formData.append('company', emailData.company);
-      formData.append('jurisdiction', emailData.jurisdiction);
-      formData.append('invoice_number', emailData.invoice_number);
-      formData.append('payment_type', emailData.payment_type);
-
-      // Try multiple approaches to send the data
-      let emailSent = false;
-
-      // Approach 1: JSON POST request
-      try {
-        const response = await fetch(googleScriptUrl, {
-          method: 'POST',
-          mode: 'no-cors', // Don't try to read response due to CORS
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(emailData),
-        });
-        
-        // With no-cors mode, we can't read the response, but the request goes through
-        console.log('Email request sent (no-cors mode)');
-        emailSent = true;
-      } catch (error) {
-        console.log('JSON approach failed, trying form data:', error);
-        
-        // Approach 2: Form data POST request
-        try {
-          const response = await fetch(googleScriptUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: formData,
-          });
-          
-          console.log('Form data request sent');
-          emailSent = true;
-        } catch (formError) {
-          console.log('Form data approach also failed:', formError);
-        }
-      }
-
-      if (emailSent) {
-        setEmailStatus('sent');
-        return true;
-      } else {
-        setEmailStatus('failed');
-        setEmailError('Email service temporarily unavailable - our team will contact you directly');
-        return false;
-      }
+      // Use JSON POST request with no-cors mode
+      const response = await fetch(googleScriptUrl, {
+        method: 'POST',
+        mode: 'no-cors', // Essential to prevent CORS block
+        headers: {
+          // Note: In no-cors mode, setting headers like Content-Type is often ignored by the browser, 
+          // but we include it for clarity. The script must rely on e.postData.contents.
+          'Content-Type': 'application/json', 
+        },
+        body: JSON.stringify(emailData),
+      });
+      
+      // Since we are in no-cors mode, we cannot inspect the response status or body.
+      // We must assume success if the fetch call completes without a network error.
+      console.log('Email request sent successfully (no-cors mode). Assuming success.');
+      setEmailStatus('sent');
+      return true;
       
     } catch (error) {
       console.error('Error sending confirmation email:', error);
       setEmailStatus('failed');
-      setEmailError('Network error - our team will contact you directly');
+      setEmailError('Network error during email dispatch. Our team will contact you directly.');
       return false;
     }
   };

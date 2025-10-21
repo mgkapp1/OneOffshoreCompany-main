@@ -49,7 +49,7 @@ const PaymentSuccess = () => {
       const emailData = {
         email: customerData.email,
         name: customerData.name,
-        amount: Math.round(parseFloat(customerData.amount) * 100), // Convert to pence
+        amount: customerData.amount, // Send as string, conversion happens in proxy
         phone: customerData.phone || '',
         company: customerData.company || '',
         jurisdiction: customerData.jurisdiction || '',
@@ -57,27 +57,26 @@ const PaymentSuccess = () => {
         payment_type: customerData.payment_type || 'cart'
       };
 
-      console.log('Attempting to send email to Google Apps Script (no-cors mode):', emailData);
-
-      const googleScriptUrl = 'https://script.google.com/macros/s/AKfycby_78s4mnDdqSxZOv1eMryZL66sq_1sl0eR7JE4CzEDscwGN9LaUojQKl4LbRdWlQUq/exec';
-      
-      // Use JSON POST request with no-cors mode
-      const response = await fetch(googleScriptUrl, {
+      // Use the Vercel Serverless Function proxy
+      const response = await fetch('/api/send-email', {
         method: 'POST',
-        mode: 'no-cors', // Essential to prevent CORS block
         headers: {
-          // Note: In no-cors mode, setting headers like Content-Type is often ignored by the browser, 
-          // but we include it for clarity. The script must rely on e.postData.contents.
-          'Content-Type': 'application/json', 
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(emailData),
       });
       
-      // Since we are in no-cors mode, we cannot inspect the response status or body.
-      // We must assume success if the fetch call completes without a network error.
-      console.log('Email request sent successfully (no-cors mode). Assuming success.');
-      setEmailStatus('sent');
-      return true;
+      const result = await response.json();
+
+      if (result.success) {
+        setEmailStatus('sent');
+        return true;
+      } else {
+        console.error('Email proxy reported failure:', result.error);
+        setEmailStatus('failed');
+        setEmailError(result.error || 'Email dispatch failed via proxy.');
+        return false;
+      }
       
     } catch (error) {
       console.error('Error sending confirmation email:', error);
@@ -88,16 +87,15 @@ const PaymentSuccess = () => {
   };
 
   useEffect(() => {
-    // NOTE: Local storage check temporarily disabled for debugging Google Apps Script issues.
-    // const paymentId = generatePaymentId();
-    // const processedPayment = localStorage.getItem(paymentId);
+    const paymentId = generatePaymentId();
+    const processedPayment = localStorage.getItem(paymentId);
     
-    // if (processedPayment) {
-    //   console.log('Payment already processed, skipping email');
-    //   setEmailStatus('sent');
-    //   setIsLoading(false);
-    //   return;
-    // }
+    if (processedPayment) {
+      console.log('Payment already processed, skipping email');
+      setEmailStatus('sent');
+      setIsLoading(false);
+      return;
+    }
 
     // Prevent duplicate processing in current session
     if (hasProcessedRef.current) {
@@ -115,11 +113,10 @@ const PaymentSuccess = () => {
         const emailSent = await sendConfirmationEmail();
         
         if (emailSent) {
-          // NOTE: Local storage setting temporarily disabled for debugging.
-          // localStorage.setItem(paymentId, 'processed');
-          // setTimeout(() => {
-          //   localStorage.removeItem(paymentId);
-          // }, 60 * 60 * 1000);
+          localStorage.setItem(paymentId, 'processed');
+          setTimeout(() => {
+            localStorage.removeItem(paymentId);
+          }, 60 * 60 * 1000); // Remove after 1 hour
         }
         
       } catch (error) {

@@ -61,6 +61,7 @@ const PaymentSuccess = () => {
 
       console.log('Sending email via serverless function:', emailData);
 
+      // Use the correct API path for Vercel
       const response = await fetch('/api/send-email', {
         method: 'POST',
         headers: {

@@ -50,7 +50,7 @@ const PaymentSuccess = () => {
 
       const emailData = {
         email: customerData.email,
-        amount: Math.round(parseFloat(customerData.amount) * 100),
+        amount: customerData.amount,
         name: customerData.name,
         company: customerData.company,
         phone: customerData.phone,
@@ -59,26 +59,27 @@ const PaymentSuccess = () => {
         payment_type: customerData.payment_type
       };
 
-      const scriptUrl = "https://script.google.com/macros/s/AKfycby_78s4mnDdqSxZOv1eMryZL66sq_1sl0eR7JE4CzEDscwGN9LaUojQKl4LbRdWlQUq/exec";
+      console.log('Sending email via serverless function:', emailData);
 
-      console.log('Sending email data:', emailData);
-
-      // Use a CORS proxy or direct fetch with error handling
-      const response = await fetch(scriptUrl, {
+      const response = await fetch('/api/send-email', {
         method: 'POST',
-        mode: 'no-cors', // Use no-cors to avoid CORS issues
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(emailData),
       });
 
-      // With no-cors mode, we can't read the response, but the request goes through
-      console.log('Email request sent (no-cors mode)');
-      
-      // Assume success since we can't read the response
-      setEmailStatus('sent');
-      return true;
+      const result = await response.json();
+      console.log('Email API response:', result);
+
+      if (result.success) {
+        setEmailStatus('sent');
+        return true;
+      } else {
+        setEmailStatus('failed');
+        setEmailError(result.error || 'Failed to send email');
+        return false;
+      }
       
     } catch (error) {
       console.error('Error sending confirmation email:', error);
@@ -258,7 +259,7 @@ const PaymentSuccess = () => {
                 </div>
               </div>
               <div className="flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-blue-600 mt=0.5 flex-shrink-0" />
+                <Clock className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-blue-800 font-medium">Company Formation</p>
                   <p className="text-blue-700 text-sm">Your company will be formed within 1-3 business days</p>

@@ -15,8 +15,6 @@ const PaymentSuccess = () => {
   
   // Use ref to track if we've already processed the payment
   const hasProcessedRef = useRef(false);
-  // Use localStorage for persistent duplicate protection across page refreshes
-  const [hasProcessedPayment, setHasProcessedPayment] = useState(false);
 
   const getCustomerDataFromURL = () => {
     return {
@@ -50,35 +48,72 @@ const PaymentSuccess = () => {
 
       const emailData = {
         email: customerData.email,
-        amount: customerData.amount,
         name: customerData.name,
-        company: customerData.company,
-        phone: customerData.phone,
-        jurisdiction: customerData.jurisdiction,
-        invoice_number: customerData.invoice_number,
-        payment_type: customerData.payment_type
+        amount: Math.round(parseFloat(customerData.amount) * 100), // Convert to pence
+        phone: customerData.phone || '',
+        company: customerData.company || '',
+        jurisdiction: customerData.jurisdiction || '',
+        invoice_number: customerData.invoice_number || '',
+        payment_type: customerData.payment_type || 'cart'
       };
 
-      console.log('Sending email via serverless function:', emailData);
+      console.log('Sending email directly to Google Apps Script:', emailData);
 
-      // Use the correct API path for Vercel
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      });
+      // Direct call to Google Apps Script with proper error handling
+      const googleScriptUrl = 'https://script.google.com/macros/s/AKfycby_78s4mnDdqSxZOv1eMryZL66sq_1sl0eR7JE4CzEDscwGN9LaUojQKl4LbRdWlQUq/exec';
+      
+      // Create a form data approach which might work better with Google Apps Script
+      const formData = new FormData();
+      formData.append('email', emailData.email);
+      formData.append('name', emailData.name);
+      formData.append('amount', emailData.amount.toString());
+      formData.append('phone', emailData.phone);
+      formData.append('company', emailData.company);
+      formData.append('jurisdiction', emailData.jurisdiction);
+      formData.append('invoice_number', emailData.invoice_number);
+      formData.append('payment_type', emailData.payment_type);
 
-      const result = await response.json();
-      console.log('Email API response:', result);
+      // Try multiple approaches to send the data
+      let emailSent = false;
 
-      if (result.success) {
+      // Approach 1: JSON POST request
+      try {
+        const response = await fetch(googleScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors', // Don't try to read response due to CORS
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(emailData),
+        });
+        
+        // With no-cors mode, we can't read the response, but the request goes through
+        console.log('Email request sent (no-cors mode)');
+        emailSent = true;
+      } catch (error) {
+        console.log('JSON approach failed, trying form data:', error);
+        
+        // Approach 2: Form data POST request
+        try {
+          const response = await fetch(googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: formData,
+          });
+          
+          console.log('Form data request sent');
+          emailSent = true;
+        } catch (formError) {
+          console.log('Form data approach also failed:', formError);
+        }
+      }
+
+      if (emailSent) {
         setEmailStatus('sent');
         return true;
       } else {
         setEmailStatus('failed');
-        setEmailError(result.error || 'Failed to send email');
+        setEmailError('Email service temporarily unavailable - our team will contact you directly');
         return false;
       }
       

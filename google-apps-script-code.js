@@ -12,9 +12,9 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Duplicate protection - check if we recently processed this order
+    // Enhanced duplicate protection - check if we recently processed this order
     const cache = CacheService.getScriptCache();
-    const cacheKey = `order_${data.email}_${data.amount}_${data.invoice_number || 'cart'}`;
+    const cacheKey = `order_${data.email}_${data.amount}_${data.invoice_number || 'cart'}_${data.name}`;
     const recentOrder = cache.get(cacheKey);
     
     if (recentOrder) {

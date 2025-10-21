@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ArrowLeft, Mail, Phone, Clock } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
@@ -12,6 +12,11 @@ const PaymentSuccess = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [emailStatus, setEmailStatus] = useState<'pending' | 'sent' | 'failed'>('pending');
   const [emailError, setEmailError] = useState<string | null>(null);
+  
+  // Use ref to track if we've already processed the payment
+  const hasProcessedRef = useRef(false);
+  // Use localStorage for persistent duplicate protection across page refreshes
+  const [hasProcessedPayment, setHasProcessedPayment] = useState(false);
 
   const getCustomerDataFromURL = () => {
     return {
@@ -26,7 +31,12 @@ const PaymentSuccess = () => {
     };
   };
 
-  const sendConfirmationEmail = async () => {
+  const generatePaymentId = () => {
+    const customerData = getCustomerDataFromURL();
+    return `payment_${customerData.email}_${customerData.amount}_${customerData.invoice_number || 'cart'}_${customerData.name}`;
+  };
+
+  const sendConfirmationEmail = async (): Promise<boolean> => {
     try {
       const customerData = getCustomerDataFromURL();
       
@@ -79,14 +89,48 @@ const PaymentSuccess = () => {
   };
 
   useEffect(() => {
-    const processPaymentSuccess = async () => {
-      // Clear cart on successful payment
-      clearCart();
-      
-      // Send confirmation email
-      await sendConfirmationEmail();
-      
+    // Check if we've already processed this payment using localStorage
+    const paymentId = generatePaymentId();
+    const processedPayment = localStorage.getItem(paymentId);
+    
+    if (processedPayment) {
+      console.log('Payment already processed, skipping email');
+      setEmailStatus('sent');
       setIsLoading(false);
+      return;
+    }
+
+    // Prevent duplicate processing in current session
+    if (hasProcessedRef.current) {
+      return;
+    }
+    
+    hasProcessedRef.current = true;
+
+    const processPaymentSuccess = async () => {
+      try {
+        // Clear cart on successful payment
+        clearCart();
+        
+        // Send confirmation email
+        const emailSent = await sendConfirmationEmail();
+        
+        if (emailSent) {
+          // Mark this payment as processed in localStorage to prevent duplicates on refresh
+          localStorage.setItem(paymentId, 'processed');
+          // Set expiration to 1 hour
+          setTimeout(() => {
+            localStorage.removeItem(paymentId);
+          }, 60 * 60 * 1000);
+        }
+        
+      } catch (error) {
+        console.error('Error processing payment success:', error);
+        setEmailStatus('failed');
+        setEmailError('An error occurred - our team will contact you directly');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     processPaymentSuccess();
@@ -214,7 +258,7 @@ const PaymentSuccess = () => {
                 </div>
               </div>
               <div className="flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <Clock className="w-5 h-5 text-blue-600 mt=0.5 flex-shrink-0" />
                 <div>
                   <p className="text-blue-800 font-medium">Company Formation</p>
                   <p className="text-blue-700 text-sm">Your company will be formed within 1-3 business days</p>

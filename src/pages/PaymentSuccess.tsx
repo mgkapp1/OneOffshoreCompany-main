@@ -7,14 +7,67 @@ import { useCart } from '../contexts/CartContext';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
-  const { clearCart } = useCart();
+  const { clearCart, state } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Mock function to simulate retrieving Stripe session data
+  // In a real implementation, you would fetch this from your Stripe session
+  const getStripeSessionData = () => {
+    // This would normally come from Stripe session retrieval
+    // For now, we'll use the cart state and some mock data
+    return {
+      email: "customer@example.com", // This should come from Stripe session
+      amount: state.total * 100, // Convert to pence
+      name: "Customer Name", // This should come from your form/Stripe metadata
+      company: state.items[0]?.name || "New Company",
+      phone: "+44 123 456 7890",
+      jurisdiction: state.items[0]?.jurisdiction || "Seychelles",
+      invoice_number: sessionId || `INV-${Date.now()}`,
+      payment_type: state.items.length > 0 ? 'cart' : 'invoice'
+    };
+  };
+
+  const sendConfirmationEmail = async () => {
+    try {
+      const sessionData = getStripeSessionData();
+      
+      const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sessionData),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setEmailSent(true);
+        console.log('Confirmation emails sent successfully');
+      } else {
+        throw new Error(result.error || 'Failed to send email');
+      }
+    } catch (error) {
+      console.error('Error sending confirmation email:', error);
+      setEmailError('Failed to send confirmation email. Our team will contact you shortly.');
+    }
+  };
 
   useEffect(() => {
-    // Clear cart on successful payment
-    clearCart();
-    setIsLoading(false);
+    const processPaymentSuccess = async () => {
+      // Clear cart on successful payment
+      clearCart();
+      
+      // Send confirmation emails
+      await sendConfirmationEmail();
+      
+      setIsLoading(false);
+    };
+
+    processPaymentSuccess();
   }, [clearCart]);
 
   if (isLoading) {
@@ -22,7 +75,7 @@ const PaymentSuccess = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Processing your payment...</p>
+          <p className="text-gray-600">Processing your payment and sending confirmation...</p>
         </div>
       </div>
     );
@@ -37,6 +90,19 @@ const PaymentSuccess = () => {
           </div>
           
           <h1 className="text-3xl font-bold text-gray-800 mb-4">Payment Successful!</h1>
+          
+          {emailSent && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <p className="text-green-700">✓ Confirmation email sent to your inbox</p>
+            </div>
+          )}
+          
+          {emailError && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-yellow-700">{emailError}</p>
+            </div>
+          )}
+          
           <p className="text-lg text-gray-600 mb-6">
             Thank you for your order. Your payment has been processed successfully.
           </p>
@@ -58,6 +124,7 @@ const PaymentSuccess = () => {
                 <li>• Our team will contact you within 24 hours</li>
                 <li>• We'll guide you through the documentation process</li>
                 <li>• Your company will be formed within 1-3 business days</li>
+                <li>• Check your email for the confirmation and next steps</li>
               </ul>
             </div>
           </div>
@@ -72,6 +139,8 @@ const PaymentSuccess = () => {
             
             <p className="text-sm text-gray-500">
               Need help? Contact us at <a href="mailto:info@oneoffshorecompany.com" className="text-blue-600 hover:underline">info@oneoffshorecompany.com</a>
+              <br />
+              or call <a href="tel:+442038461272" className="text-blue-600 hover:underline">+44 203 8461272</a>
             </p>
           </div>
         </div>

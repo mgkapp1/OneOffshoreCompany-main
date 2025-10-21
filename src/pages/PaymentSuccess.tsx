@@ -13,33 +13,102 @@ const PaymentSuccess = () => {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  // Mock function to simulate retrieving Stripe session data
-  // In a real implementation, you would fetch this from your Stripe session
-  const getStripeSessionData = () => {
-    // This would normally come from Stripe session retrieval
-    // For now, we'll use the cart state and some mock data
+  const getCustomerDataFromURL = () => {
     return {
-      email: "customer@example.com", // This should come from Stripe session
-      amount: state.total * 100, // Convert to pence
-      name: "Customer Name", // This should come from your form/Stripe metadata
-      company: state.items[0]?.name || "New Company",
-      phone: "+44 123 456 7890",
-      jurisdiction: state.items[0]?.jurisdiction || "Seychelles",
-      invoice_number: sessionId || `INV-${Date.now()}`,
-      payment_type: state.items.length > 0 ? 'cart' : 'invoice'
+      email: searchParams.get('customer_email') || '',
+      amount: searchParams.get('amount') || '0',
+      name: searchParams.get('customer_name') || '',
+      company: searchParams.get('company_name') || '',
+      phone: searchParams.get('customer_phone') || '',
+      jurisdiction: searchParams.get('jurisdiction') || '',
+      invoice_number: searchParams.get('invoice_number') || '',
+      payment_type: searchParams.get('payment_type') || 'cart'
     };
   };
 
   const sendConfirmationEmail = async () => {
     try {
-      const sessionData = getStripeSessionData();
+      const customerData = getCustomerDataFromURL();
+      
+      // Validate we have required data
+      if (!customerData.email || !customerData.name) {
+        throw new Error('Missing customer data for email confirmation');
+      }
+
+      const emailData = {
+        email: customerData.email,
+        amount: Math.round(parseFloat(customerData.amount) * 100), // Convert to pence
+        name: customerData.name,
+        company: customerData.company,
+        phone: customerData.phone,
+        jurisdiction: customerData.jurisdiction,
+        invoice_number: customerData.invoice_number,
+        payment_type: customerData.payment_type
+      };
+
+      console.log('Sending email data:', emailData);
+      
+      const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
+        method: 'POST',
+       I need to complete the PaymentSuccess component. Let me finish it:
+
+<dyad-write path="src/pages/PaymentSuccess.tsx" description="Complete PaymentSuccess component with proper email sending">
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CheckCircle, ArrowLeft } from 'lucide-react';
+import { useCart } from '../contexts/CartContext';
+
+const PaymentSuccess = () => {
+  const [searchParams] = useSearchParams();
+  const { clearCart, state } = useCart();
+  const sessionId = searchParams.get('session_id');
+  const [isLoading, setIsLoading] = useState(true);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  const getCustomerDataFromURL = () => {
+    return {
+      email: searchParams.get('customer_email') || '',
+      amount: searchParams.get('amount') || '0',
+      name: searchParams.get('customer_name') || '',
+      company: searchParams.get('company_name') || '',
+      phone: searchParams.get('customer_phone') || '',
+      jurisdiction: searchParams.get('jurisdiction') || '',
+      invoice_number: searchParams.get('invoice_number') || '',
+      payment_type: searchParams.get('payment_type') || 'cart'
+    };
+  };
+
+  const sendConfirmationEmail = async () => {
+    try {
+      const customerData = getCustomerDataFromURL();
+      
+      // Validate we have required data
+      if (!customerData.email || !customerData.name) {
+        throw new Error('Missing customer data for email confirmation');
+      }
+
+      const emailData = {
+        email: customerData.email,
+        amount: Math.round(parseFloat(customerData.amount) * 100), // Convert to pence
+        name: customerData.name,
+        company: customerData.company,
+        phone: customerData.phone,
+        jurisdiction: customerData.jurisdiction,
+        invoice_number: customerData.invoice_number,
+        payment_type: customerData.payment_type
+      };
+
+      console.log('Sending email data:', emailData);
       
       const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(sessionData),
+        body: JSON.stringify(emailData),
       });
 
       const result = await response.json();
@@ -81,6 +150,12 @@ const PaymentSuccess = () => {
     );
   }
 
+  const customerData = getCustomerDataFromURL();
+  const formattedAmount = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP'
+  }).format(parseFloat(customerData.amount));
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-2xl mx-auto px-4">
@@ -93,7 +168,7 @@ const PaymentSuccess = () => {
           
           {emailSent && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <p className="text-green-700">✓ Confirmation email sent to your inbox</p>
+              <p className="text-green-700">✓ Confirmation email sent to {customerData.email}</p>
             </div>
           )}
           
@@ -104,7 +179,7 @@ const PaymentSuccess = () => {
           )}
           
           <p className="text-lg text-gray-600 mb-6">
-            Thank you for your order. Your payment has been processed successfully.
+            Thank you for your order of {formattedAmount}. Your payment has been processed successfully.
           </p>
           
           {sessionId && (
@@ -114,6 +189,15 @@ const PaymentSuccess = () => {
           )}
           
           <div className="space-y-4">
+            <div className="bg-gray-50 rounded-lg p-4 text-left">
+              <h3 className="font-semibold text-gray-800 mb-2">Order Details:</h3>
+              <p className="text-sm text-gray-600"><strong>Name:</strong> {customerData.name}</p>
+              <p className="text-sm text-gray-600"><strong>Email:</strong> {customerData.email}</p>
+              {customerData.company && <p className="text-sm text-gray-600"><strong>Company:</strong> {customerData.company}</p>}
+              {customerData.phone && <p className="text-sm text-gray-600"><strong>Phone:</strong> {customerData.phone}</p>}
+              {customerData.jurisdiction && <p className="text-sm text-gray-600"><strong>Jurisdiction:</strong> {customerData.jurisdiction}</p>}
+            </div>
+            
             <p className="text-gray-700">
               You will receive a confirmation email shortly with your order details and next steps for your company formation.
             </p>

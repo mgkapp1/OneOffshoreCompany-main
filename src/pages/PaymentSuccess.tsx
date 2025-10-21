@@ -4,97 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import { submitPaymentNotification, formatOrderItems, PaymentData } from '../utils/emailService';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
-  const { state, clearCart } = useCart();
+  const { clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
-  const [notificationStatus, setNotificationStatus] = useState<string>('Processing your payment...');
-
-  const processPaymentSuccess = async () => {
-    try {
-      console.log('PaymentSuccess mounted - processing payment confirmation');
-      
-      // Check if we've already processed this payment
-      const paymentProcessed = sessionStorage.getItem('paymentProcessed');
-      
-      if (paymentProcessed) {
-        console.log('Payment already processed in this session');
-        setIsLoading(false);
-        return;
-      }
-
-      // Mark as processed immediately
-      sessionStorage.setItem('paymentProcessed', 'true');
-      
-      // Clear cart
-      clearCart();
-      
-      // Extract customer data from Stripe metadata
-      const customerName = searchParams.get('name') || 'Customer';
-      const customerEmail = searchParams.get('customer_email') || searchParams.get('email') || '';
-      const phone = searchParams.get('phone') || '';
-      const companyName = searchParams.get('company') || '';
-      const invoiceNumber = searchParams.get('invoice') || searchParams.get('$ProFormaID') || '';
-      const jurisdiction = searchParams.get('jurisdiction') || '';
-      const paymentType = searchParams.get('payment_type') || (state.items.length > 0 ? 'cart' : 'invoice');
-      const amount = searchParams.get('amount') || state.total.toString();
-
-      console.log('Submitting payment to Google Forms...');
-
-      // Prepare payment data
-      const paymentData: PaymentData = {
-        customer_name: customerName,
-        customer_email: customerEmail,
-        order_amount: `£${parseFloat(amount).toFixed(2)}`,
-        jurisdiction: jurisdiction || (state.items.length > 0 ? state.items.map(item => item.jurisdiction).join(', ') : ''),
-        order_items: state.items.length > 0 
-          ? formatOrderItems(state.items)
-          : `Invoice Payment - ${invoiceNumber}`,
-        invoice_number: invoiceNumber,
-        payment_type: paymentType
-      };
-
-      console.log('Payment data for Google Forms:', paymentData);
-
-      setNotificationStatus('Submitting to Google Forms...');
-
-      // Submit to Google Forms with timeout
-      const submissionPromise = submitPaymentNotification(paymentData);
-      const timeoutPromise = new Promise<boolean>((resolve) => {
-        setTimeout(() => resolve(true), 3000); // Assume success after 3 seconds
-      });
-
-      // Race between actual submission and timeout
-      const success = await Promise.race([submissionPromise, timeoutPromise]);
-      
-      if (success) {
-        setNotificationStatus('✓ Submitted to Google Forms Successfully');
-        console.log('Google Forms submission completed');
-      } else {
-        setNotificationStatus('⚠ Google Forms Submission May Have Failed');
-        console.error('Google Forms submission may have failed');
-      }
-
-    } catch (error) {
-      console.error('Error processing payment success:', error);
-      setNotificationStatus('❌ Processing Error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
-    processPaymentSuccess();
-
-    // Cleanup: Remove sessionStorage when component unmounts (user leaves page)
-    return () => {
-      console.log('PaymentSuccess cleanup - removing sessionStorage');
-      sessionStorage.removeItem('paymentProcessed');
-    };
-  }, [clearCart, searchParams, state.items, state.total]);
+    // Clear cart on successful payment
+    clearCart();
+    setIsLoading(false);
+  }, [clearCart]);
 
   if (isLoading) {
     return (
@@ -102,7 +23,6 @@ const PaymentSuccess = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Processing your payment...</p>
-          <p className="text-sm text-gray-500 mt-2">Submitting to Google Forms</p>
         </div>
       </div>
     );
@@ -121,31 +41,6 @@ const PaymentSuccess = () => {
             Thank you for your order. Your payment has been processed successfully.
           </p>
           
-          {/* Notification Status */}
-          <div className={`border rounded-lg p-4 mb-6 ${
-            notificationStatus.includes('✓') ? 'bg-green-50 border-green-200' : 
-            notificationStatus.includes('❌') ? 'bg-red-50 border-red-200' : 
-            'bg-yellow-50 border-yellow-200'
-          }`}>
-            <h3 className={`font-semibold mb-2 ${
-              notificationStatus.includes('✓') ? 'text-green-800' : 
-              notificationStatus.includes('❌') ? 'text-red-800' : 
-              'text-yellow-800'
-            }`}>
-              {notificationStatus}
-            </h3>
-            <p className={`text-sm ${
-              notificationStatus.includes('✓') ? 'text-green-700' : 
-              notificationStatus.includes('❌') ? 'text-red-700' : 
-              'text-yellow-700'
-            }`}>
-              {notificationStatus.includes('✓') 
-                ? 'Your order has been submitted to our system. Our team will contact you within 24 hours.'
-                : 'Your payment was successful! If you don\'t hear from us within 24 hours, please contact info@oneoffshorecompany.com'
-              }
-            </p>
-          </div>
-          
           {sessionId && (
             <p className="text-sm text-gray-500 mb-6">
               Order ID: {sessionId}
@@ -154,7 +49,7 @@ const PaymentSuccess = () => {
           
           <div className="space-y-4">
             <p className="text-gray-700">
-              Our team will contact you within 24 hours to guide you through the next steps of your company formation process.
+              You will receive a confirmation email shortly with your order details and next steps for your company formation.
             </p>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
@@ -163,7 +58,6 @@ const PaymentSuccess = () => {
                 <li>• Our team will contact you within 24 hours</li>
                 <li>• We'll guide you through the documentation process</li>
                 <li>• Your company will be formed within 1-3 business days</li>
-                <li>• Check your email for confirmation messages</li>
               </ul>
             </div>
           </div>

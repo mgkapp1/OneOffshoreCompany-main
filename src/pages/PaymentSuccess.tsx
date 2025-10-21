@@ -50,61 +50,6 @@ const PaymentSuccess = () => {
       
       const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
         method: 'POST',
-       I need to complete the PaymentSuccess component. Let me finish it:
-
-<dyad-write path="src/pages/PaymentSuccess.tsx" description="Complete PaymentSuccess component with proper email sending">
-"use client";
-
-import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle, ArrowLeft } from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
-
-const PaymentSuccess = () => {
-  const [searchParams] = useSearchParams();
-  const { clearCart, state } = useCart();
-  const sessionId = searchParams.get('session_id');
-  const [isLoading, setIsLoading] = useState(true);
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
-
-  const getCustomerDataFromURL = () => {
-    return {
-      email: searchParams.get('customer_email') || '',
-      amount: searchParams.get('amount') || '0',
-      name: searchParams.get('customer_name') || '',
-      company: searchParams.get('company_name') || '',
-      phone: searchParams.get('customer_phone') || '',
-      jurisdiction: searchParams.get('jurisdiction') || '',
-      invoice_number: searchParams.get('invoice_number') || '',
-      payment_type: searchParams.get('payment_type') || 'cart'
-    };
-  };
-
-  const sendConfirmationEmail = async () => {
-    try {
-      const customerData = getCustomerDataFromURL();
-      
-      // Validate we have required data
-      if (!customerData.email || !customerData.name) {
-        throw new Error('Missing customer data for email confirmation');
-      }
-
-      const emailData = {
-        email: customerData.email,
-        amount: Math.round(parseFloat(customerData.amount) * 100), // Convert to pence
-        name: customerData.name,
-        company: customerData.company,
-        phone: customerData.phone,
-        jurisdiction: customerData.jurisdiction,
-        invoice_number: customerData.invoice_number,
-        payment_type: customerData.payment_type
-      };
-
-      console.log('Sending email data:', emailData);
-      
-      const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
-        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },

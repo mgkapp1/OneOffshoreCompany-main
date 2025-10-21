@@ -88,16 +88,16 @@ const PaymentSuccess = () => {
   };
 
   useEffect(() => {
-    // Check if we've already processed this payment using localStorage
-    const paymentId = generatePaymentId();
-    const processedPayment = localStorage.getItem(paymentId);
+    // NOTE: Local storage check temporarily disabled for debugging Google Apps Script issues.
+    // const paymentId = generatePaymentId();
+    // const processedPayment = localStorage.getItem(paymentId);
     
-    if (processedPayment) {
-      console.log('Payment already processed, skipping email');
-      setEmailStatus('sent');
-      setIsLoading(false);
-      return;
-    }
+    // if (processedPayment) {
+    //   console.log('Payment already processed, skipping email');
+    //   setEmailStatus('sent');
+    //   setIsLoading(false);
+    //   return;
+    // }
 
     // Prevent duplicate processing in current session
     if (hasProcessedRef.current) {
@@ -115,12 +115,11 @@ const PaymentSuccess = () => {
         const emailSent = await sendConfirmationEmail();
         
         if (emailSent) {
-          // Mark this payment as processed in localStorage to prevent duplicates on refresh
-          localStorage.setItem(paymentId, 'processed');
-          // Set expiration to 1 hour
-          setTimeout(() => {
-            localStorage.removeItem(paymentId);
-          }, 60 * 60 * 1000);
+          // NOTE: Local storage setting temporarily disabled for debugging.
+          // localStorage.setItem(paymentId, 'processed');
+          // setTimeout(() => {
+          //   localStorage.removeItem(paymentId);
+          // }, 60 * 60 * 1000);
         }
         
       } catch (error) {

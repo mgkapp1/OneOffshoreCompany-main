@@ -7,7 +7,7 @@ import { useCart } from '../contexts/CartContext';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
-  const { clearCart, state } = useCart();
+  const { clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
   const [emailSent, setEmailSent] = useState(false);
@@ -32,7 +32,8 @@ const PaymentSuccess = () => {
       
       // Validate we have required data
       if (!customerData.email || !customerData.name) {
-        throw new Error('Missing customer data for email confirmation');
+        console.warn('Missing customer data for email confirmation');
+        return false;
       }
 
       const emailData = {
@@ -48,7 +49,14 @@ const PaymentSuccess = () => {
 
       console.log('Sending email data:', emailData);
       
-      const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
+      // Check if Google Apps Script URL is configured
+      const scriptUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+      if (!scriptUrl || scriptUrl.includes('YOUR_SCRIPT_ID')) {
+        console.warn('Google Apps Script URL not configured');
+        return false;
+      }
+
+      const response = await fetch(scriptUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,17 +64,21 @@ const PaymentSuccess = () => {
         body: JSON.stringify(emailData),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
       
       if (result.success) {
-        setEmailSent(true);
         console.log('Confirmation emails sent successfully');
+        return true;
       } else {
         throw new Error(result.error || 'Failed to send email');
       }
     } catch (error) {
       console.error('Error sending confirmation email:', error);
-      setEmailError('Failed to send confirmation email. Our team will contact you shortly.');
+      return false;
     }
   };
 
@@ -75,8 +87,14 @@ const PaymentSuccess = () => {
       // Clear cart on successful payment
       clearCart();
       
-      // Send confirmation emails
-      await sendConfirmationEmail();
+      // Try to send confirmation emails
+      const emailSuccess = await sendConfirmationEmail();
+      
+      if (emailSuccess) {
+        setEmailSent(true);
+      } else {
+        setEmailError('Email confirmation not sent. Our team will contact you shortly.');
+      }
       
       setIsLoading(false);
     };
@@ -89,7 +107,7 @@ const PaymentSuccess = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Processing your payment and sending confirmation...</p>
+          <p className="text-gray-600">Processing your payment...</p>
         </div>
       </div>
     );
@@ -120,6 +138,9 @@ const PaymentSuccess = () => {
           {emailError && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <p className="text-yellow-700">{emailError}</p>
+              <p className="text-yellow-600 text-sm mt-1">
+                Don't worry - your payment was successful and we have your order details.
+              </p>
             </div>
           )}
           
@@ -144,7 +165,10 @@ const PaymentSuccess = () => {
             </div>
             
             <p className="text-gray-700">
-              You will receive a confirmation email shortly with your order details and next steps for your company formation.
+              {emailSent 
+                ? 'You will receive a confirmation email shortly with your order details and next steps for your company formation.'
+                : 'Our team will contact you within 24 hours with your order details and next steps for your company formation.'
+              }
             </p>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">

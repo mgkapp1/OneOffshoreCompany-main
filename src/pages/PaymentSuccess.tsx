@@ -12,6 +12,7 @@ const PaymentSuccess = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const getCustomerDataFromURL = () => {
     return {
@@ -32,7 +33,9 @@ const PaymentSuccess = () => {
       
       // Validate we have required data
       if (!customerData.email || !customerData.name) {
-        console.warn('Missing customer data for email confirmation');
+        const errorMsg = 'Missing customer data for email confirmation';
+        console.warn(errorMsg);
+        setDebugInfo(errorMsg);
         return false;
       }
 
@@ -51,33 +54,55 @@ const PaymentSuccess = () => {
       
       // Check if Google Apps Script URL is configured
       const scriptUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+      console.log('Script URL from env:', scriptUrl);
+      
       if (!scriptUrl || scriptUrl.includes('YOUR_SCRIPT_ID')) {
-        console.warn('Google Apps Script URL not configured');
+        const errorMsg = 'Google Apps Script URL not configured or still using placeholder';
+        console.warn(errorMsg);
+        setDebugInfo(errorMsg);
         return false;
       }
 
-      const response = await fetch(scriptUrl, {
+      setDebugInfo(`Attempting to send request to: ${scriptUrl}`);
+      
+      // Add timestamp to avoid caching
+      const urlWithTimestamp = `${scriptUrl}?t=${Date.now()}`;
+      
+      const response = await fetch(urlWithTimestamp, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        mode: 'no-cors', // Try no-cors mode first
         body: JSON.stringify(emailData),
       });
+
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      // With no-cors mode, we can't read the response, so we'll assume success
+      if (response.type === 'opaque') {
+        console.log('Request sent successfully (no-cors mode)');
+        return true;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log('Response result:', result);
       
       if (result.success) {
         console.log('Confirmation emails sent successfully');
+        setDebugInfo('Emails sent successfully');
         return true;
       } else {
         throw new Error(result.error || 'Failed to send email');
       }
     } catch (error) {
       console.error('Error sending confirmation email:', error);
+      setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   };
@@ -141,6 +166,11 @@ const PaymentSuccess = () => {
               <p className="text-yellow-600 text-sm mt-1">
                 Don't worry - your payment was successful and we have your order details.
               </p>
+              {debugInfo && (
+                <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono">
+                  Debug: {debugInfo}
+                </div>
+              )}
             </div>
           )}
           

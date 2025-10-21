@@ -10,8 +10,9 @@ const PaymentSuccess = () => {
   const { clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
-  const [emailSent, setEmailSent] = useState(true); // Assume success since emails are working
+  const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [hasAttemptedEmail, setHasAttemptedEmail] = useState(false);
 
   const getCustomerDataFromURL = () => {
     return {
@@ -27,12 +28,21 @@ const PaymentSuccess = () => {
   };
 
   const sendConfirmationEmail = async () => {
+    // Prevent multiple attempts
+    if (hasAttemptedEmail) {
+      console.log('Email already attempted, skipping');
+      return false;
+    }
+
+    setHasAttemptedEmail(true);
+    
     try {
       const customerData = getCustomerDataFromURL();
       
       // Validate we have required data
       if (!customerData.email || !customerData.name) {
         console.warn('Missing customer data for email confirmation');
+        setEmailError('Missing customer information');
         return false;
       }
 
@@ -51,27 +61,37 @@ const PaymentSuccess = () => {
       
       if (!scriptUrl) {
         console.warn('Google Apps Script URL not configured');
+        setEmailError('Email service not configured');
         return false;
       }
 
-      // Add timestamp to avoid caching
-      const urlWithTimestamp = `${scriptUrl}?t=${Date.now()}`;
-      
-      // Since we're using no-cors mode and emails are working, we'll assume success
-      await fetch(urlWithTimestamp, {
+      // Use fetch with proper CORS handling
+      const response = await fetch(scriptUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        mode: 'no-cors',
         body: JSON.stringify(emailData),
       });
 
-      console.log('Email request sent successfully');
-      return true;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setEmailSent(true);
+        console.log('Email sent successfully:', result.message);
+        return true;
+      } else {
+        throw new Error(result.error || 'Failed to send email');
+      }
       
     } catch (error) {
       console.error('Error sending confirmation email:', error);
+      setEmailError(error instanceof Error ? error.message : 'Failed to send confirmation email');
+      setEmailSent(false);
       return false;
     }
   };
@@ -81,7 +101,7 @@ const PaymentSuccess = () => {
       // Clear cart on successful payment
       clearCart();
       
-      // Send confirmation emails (we'll assume success since they're working)
+      // Send confirmation email (only once)
       await sendConfirmationEmail();
       
       setIsLoading(false);
@@ -119,15 +139,28 @@ const PaymentSuccess = () => {
           {/* Main Success Message */}
           <h1 className="text-3xl font-bold text-gray-800 mb-4">Payment Successful!</h1>
           
-          {/* Confirmation Message */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center justify-center space-x-2">
-              <Mail className="w-5 h-5 text-green-600" />
-              <p className="text-green-700 font-medium">
-                Confirmation email sent to {customerData.email}
-              </p>
+          {/* Email Status */}
+          {emailSent && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-center space-x-2">
+                <Mail className="w-5 h-5 text-green-600" />
+                <p className="text-green-700 font-medium">
+                  Confirmation email sent to {customerData.email}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
+          
+          {emailError && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-center space-x-2">
+                <Mail className="w-5 h-5 text-yellow-600" />
+                <p className="text-yellow-700">
+                  Note: Confirmation email may not have been sent. Our team will contact you directly.
+                </p>
+              </div>
+            </div>
+          )}
           
           {/* Order Summary */}
           <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left">

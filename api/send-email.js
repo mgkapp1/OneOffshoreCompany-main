@@ -1,5 +1,4 @@
-// This file should be moved to src/pages/api/send-email.js for Vercel
-// For now, let's create it in the correct location
+import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

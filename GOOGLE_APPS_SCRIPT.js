@@ -1,10 +1,26 @@
 function doPost(e) {
+  // Use LockService to prevent concurrent execution for a short period
+  const lock = LockService.getScriptLock();
   try {
+    // Wait for up to 30 seconds for the lock.
+    lock.waitLock(30000); 
+    
     // Parse the JSON payload sent from the Vercel webhook
     const data = JSON.parse(e.postData.contents);
     
     const { sessionId, totalAmount, currency, customerEmail, metadata, lineItems } = data;
     
+    // --- Idempotency Check (Simple check using PropertiesService) ---
+    // In a real scenario, you might check a database, but for GAS, we use properties.
+    const properties = PropertiesService.getScriptProperties();
+    const processedKey = 'processed_' + sessionId;
+    
+    if (properties.getProperty(processedKey)) {
+      Logger.log("Session ID " + sessionId + " already processed. Skipping email.");
+      return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Already processed" })).setMimeType(ContentService.MimeType.JSON);
+    }
+    // -----------------------------------------------------------------
+
     // Format currency (Stripe sends amount in cents/pence)
     const formattedTotal = (totalAmount / 100).toFixed(2);
     const currencySymbol = currency.toUpperCase() === 'GBP' ? '£' : currency.toUpperCase();
@@ -58,13 +74,22 @@ function doPost(e) {
       to: "accounts@oneoffshorecompany.com",
       cc: "info@oneoffshorecompany.com",
       subject: subject,
-      htmlBody: htmlBody
+      htmlBody: htmlBody,
+      name: "Payments Oneoffshore" // Custom sender name
     });
+    
+    // Mark this session as processed
+    properties.setProperty(processedKey, new Date().toISOString());
 
     return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
     Logger.log("Error processing webhook: " + error.toString());
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    // Release the lock
+    if (lock.hasLock()) {
+      lock.releaseLock();
+    }
   }
 }

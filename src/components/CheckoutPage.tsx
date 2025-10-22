@@ -123,7 +123,7 @@ const CheckoutPage = () => {
           'line_items[0][price_data][unit_amount]': String(parseFloat(formData.amount) * 100),
           'line_items[0][quantity]': '1',
           'mode': 'payment',
-          'success_url': `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&customer_email=${encodeURIComponent(formData.email)}&customer_name=${encodeURIComponent(formData.name)}&customer_phone=${encodeURIComponent(formData.phone)}&company_name=${encodeURIComponent(formData.company_name)}&jurisdiction=${encodeURIComponent(formData.jurisdiction)}&invoice_number=${encodeURIComponent(formData.invoice_number)}&payment_type=${encodeURIComponent(formData.payment_type)}&amount=${encodeURIComponent(formData.amount)}`,
+          'success_url': `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
           'cancel_url': `${window.location.origin}/checkout`,
           'customer_email': formData.email,
           'metadata[name]': formData.name,

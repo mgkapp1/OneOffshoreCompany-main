@@ -107,6 +107,18 @@ const CheckoutPage = () => {
     setError(null);
 
     try {
+      // Build product description based on payment type
+      let productDescription = '';
+      
+      if (formData.payment_type === 'invoice') {
+        // For invoices: Use jurisdiction from URL parameters
+        productDescription = `Invoice #${formData.invoice_number} - ${formData.company_name} - ${formData.jurisdiction} - £${formData.amount}`;
+      } else {
+        // For cart: Use exact product names from cart items
+        const productNames = state.items.map(item => item.name).join(', ');
+        productDescription = `${productNames} - Total: £${formData.amount} - ${formData.email}`;
+      }
+
       // Create checkout session directly with Stripe API
       const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
         method: 'POST',
@@ -117,9 +129,7 @@ const CheckoutPage = () => {
         body: new URLSearchParams({
           'payment_method_types[]': 'card',
           'line_items[0][price_data][currency]': 'gbp',
-          'line_items[0][price_data][product_data][name]': formData.payment_type === 'invoice' 
-            ? `Invoice Payment - ${formData.invoice_number}`
-            : 'Offshore Company Formation',
+          'line_items[0][price_data][product_data][name]': productDescription,
           'line_items[0][price_data][unit_amount]': String(parseFloat(formData.amount) * 100),
           'line_items[0][quantity]': '1',
           'mode': 'payment',
@@ -131,7 +141,8 @@ const CheckoutPage = () => {
           'metadata[company]': formData.company_name,
           'metadata[invoice]': formData.invoice_number,
           'metadata[jurisdiction]': formData.jurisdiction,
-          'metadata[payment_type]': formData.payment_type
+          'metadata[payment_type]': formData.payment_type,
+          'metadata[product_description]': productDescription
         }),
       });
 
@@ -192,6 +203,7 @@ const CheckoutPage = () => {
                     <h3 className="font-semibold text-gray-900">Invoice Payment</h3>
                     <p className="text-sm text-gray-600">Invoice: {formData.invoice_number}</p>
                     <p className="text-sm text-gray-600">Company: {formData.company_name}</p>
+                    <p className="text-sm text-gray-600">Jurisdiction: {formData.jurisdiction}</p>
                   </div>
                 ) : (
                   state.items.map((item) => (

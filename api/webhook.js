@@ -61,14 +61,24 @@ export default async function handler(req, res) {
       const gasUrl = process.env.GOOGLE_SCRIPT_WEBHOOK_URL;
 
       if (gasUrl) {
-        await fetch(gasUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderDetails),
-        });
-        console.log('Order details successfully forwarded to Google Apps Script.');
+        try {
+          const gasResponse = await fetch(gasUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderDetails),
+          });
+
+          if (gasResponse.ok) {
+            console.log('Order details successfully forwarded to Google Apps Script.');
+          } else {
+            const responseText = await gasResponse.text();
+            console.error(`Failed to forward order details to GAS. Status: ${gasResponse.status}. Response: ${responseText}`);
+          }
+        } catch (fetchError) {
+          console.error('Error during fetch to Google Apps Script:', fetchError);
+        }
       } else {
         console.warn('GOOGLE_SCRIPT_WEBHOOK_URL is not set. Admin email notification skipped.');
       }

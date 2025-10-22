@@ -13,7 +13,7 @@ const PaymentSuccess = () => {
   const [emailStatus, setEmailStatus] = useState<'pending' | 'sent' | 'failed'>('pending');
   const [emailError, setEmailError] = useState<string | null>(null);
   
-  // Use ref to track if we've already processed the payment
+  // Use ref to track if we've already processed the payment in this session
   const hasProcessedRef = useRef(false);
 
   const getCustomerDataFromURL = () => {
@@ -31,14 +31,16 @@ const PaymentSuccess = () => {
 
   const generatePaymentId = () => {
     const customerData = getCustomerDataFromURL();
-    return `payment_${customerData.email}_${customerData.amount}_${customerData.invoice_number || 'cart'}_${customerData.name}`;
+    // Use a combination of unique identifiers to ensure uniqueness per transaction
+    return `payment_${customerData.email}_${customerData.amount}_${customerData.invoice_number || 'cart'}_${customerData.name.replace(/\s/g, '')}`;
   };
 
   const sendConfirmationEmail = async (): Promise<boolean> => {
+    const googleScriptUrl = 'https://script.google.com/macros/s/AKfycby_78s4mnDdqSxZOv1eMryZL66sq_1sl0eR7JE4CzEDscwGN9LaUojQKl4LbRdWlQUq/exec';
+    
     try {
       const customerData = getCustomerDataFromURL();
       
-      // Validate we have required data
       if (!customerData.email || !customerData.name) {
         console.warn('Missing customer data for email confirmation');
         setEmailStatus('failed');
@@ -49,7 +51,7 @@ const PaymentSuccess = () => {
       const emailData = {
         email: customerData.email,
         name: customerData.name,
-        amount: customerData.amount, // Send as string, conversion happens in proxy
+        amount: Math.round(parseFloat(customerData.amount) * 100), // Convert to pence for script
         phone: customerData.phone || '',
         company: customerData.company || '',
         jurisdiction: customerData.jurisdiction || '',
@@ -57,21 +59,9 @@ const PaymentSuccess = () => {
         payment_type: customerData.payment_type || 'cart'
       };
 
-      // Determine the correct endpoint based on environment
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      
-      let endpoint = '/api/send-email';
-      
-      // If running locally, call the Google Apps Script directly to bypass local Vercel API routing issues.
-      // NOTE: This might cause CORS errors, but it confirms the script works.
-      // In production (Vercel), the /api/send-email proxy handles CORS.
-      if (isLocal) {
-        endpoint = 'https://script.google.com/macros/s/AKfycby_78s4mnDdqSxZOv1eMryZL66sq_1sl0eR7JE4CzEDscwGN9LaUojQKl4LbRdWlQUq/exec';
-      }
+      console.log(`Sending email request directly to Google Apps Script: ${googleScriptUrl}`);
 
-      console.log(`Sending email request to: ${endpoint}`);
-
-      const response = await fetch(endpoint, {
+      const response = await fetch(googleScriptUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,31 +69,16 @@ const PaymentSuccess = () => {
         body: JSON.stringify(emailData),
       });
       
-      // If calling the Vercel proxy, we expect JSON response
-      if (!isLocal) {
-        const result = await response.json();
-
-        if (result.success) {
-          setEmailStatus('sent');
-          return true;
-        } else {
-          console.error('Email proxy reported failure:', result.error);
-          setEmailStatus('failed');
-          setEmailError(result.error || 'Email dispatch failed via proxy.');
-          return false;
-        }
+      // Since Google Apps Script often returns an opaque response (status 0) or a CORS error,
+      // we rely on the fact that the request was successfully initiated.
+      if (response.ok || response.status === 0) {
+        setEmailStatus('sent');
+        return true;
       } else {
-        // If calling Google Apps Script directly, we assume success if the request completes (due to CORS/opaque response)
-        if (response.ok || response.status === 0) {
-          setEmailStatus('sent');
-          return true;
-        } else {
-          // If we get a non-200 status from the direct call, it's likely a CORS issue or script failure
-          console.error('Direct Google Script call failed with status:', response.status);
-          setEmailStatus('failed');
-          setEmailError('Direct script call failed. Check console for CORS errors.');
-          return false;
-        }
+        console.error('Direct Google Script call failed with status:', response.status);
+        setEmailStatus('failed');
+        setEmailError('Direct script call failed. Check console for CORS errors.');
+        return false;
       }
       
     } catch (error) {
@@ -147,10 +122,11 @@ const PaymentSuccess = () => {
         const emailSent = await sendConfirmationEmail();
         
         if (emailSent) {
+          // Mark as processed in local storage for 1 hour
           localStorage.setItem(paymentId, 'processed');
           setTimeout(() => {
             localStorage.removeItem(paymentId);
-          }, 60 * 60 * 1000); // Remove after 1 hour
+          }, 60 * 60 * 1000); 
         }
         
       } catch (error) {

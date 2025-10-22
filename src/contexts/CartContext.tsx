@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
 
 export interface CartItem {
   id: string;
@@ -66,17 +66,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     total: 0
   });
 
-  const addItem = (item: CartItem) => {
+  const addItem = useCallback((item: CartItem) => {
     dispatch({ type: 'ADD_ITEM', payload: item });
-  };
+  }, [dispatch]);
 
-  const removeItem = (id: string) => {
+  const removeItem = useCallback((id: string) => {
     dispatch({ type: 'REMOVE_ITEM', payload: id });
-  };
+  }, [dispatch]);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     dispatch({ type: 'CLEAR_CART' });
-  };
+  }, [dispatch]);
 
   return (
     <CartContext.Provider value={{ state, addItem, removeItem, clearCart }}>

@@ -107,46 +107,62 @@ const CheckoutPage = () => {
     setError(null);
 
     try {
-      // Create checkout session directly with Stripe API
-      const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      // Prepare items array for the serverless function
+      let itemsToSend;
+      if (formData.payment_type === 'invoice') {
+        // For invoice payment, create a single item representing the invoice
+        itemsToSend = [{
+          name: `Invoice Payment: ${formData.invoice_number}`,
+          amount: Math.round(parseFloat(formData.amount) * 100), // Convert GBP to pence
+          jurisdiction: formData.jurisdiction || 'N/A',
+          type: 'invoice',
+          quantity: 1
+        }];
+      } else {
+        // For cart payment, use the items from the cart state
+        itemsToSend = state.items.map(item => ({
+          ...item,
+          amount: Math.round(item.price * 100), // Convert GBP to pence
+          quantity: 1
+        }));
+      }
+
+      if (itemsToSend.length === 0) {
+        setError('Your cart is empty or invoice amount is zero.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Call the secure serverless function to create the Stripe Checkout Session
+      const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sk_test_51SEUcxRmEAZCEXCX8MFdJELlqNnAgOcUEogRmCKH6g3YDxcwHXQruX9Z7XJ2bnqFP5cf2RtHZ62xSc3AM0axEHBp008au56Lyi',
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
-          'payment_method_types[]': 'card',
-          'line_items[0][price_data][currency]': 'gbp',
-          'line_items[0][price_data][product_data][name]': formData.payment_type === 'invoice' 
-            ? `Invoice Payment - ${formData.invoice_number}`
-            : 'Offshore Company Formation',
-          'line_items[0][price_data][unit_amount]': String(parseFloat(formData.amount) * 100),
-          'line_items[0][quantity]': '1',
-          'mode': 'payment',
-          'success_url': `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-          'cancel_url': `${window.location.origin}/checkout`,
-          'customer_email': formData.email,
-          'metadata[name]': formData.name,
-          'metadata[phone]': formData.phone,
-          'metadata[company]': formData.company_name,
-          'metadata[invoice]': formData.invoice_number,
-          'metadata[jurisdiction]': formData.jurisdiction,
-          'metadata[payment_type]': formData.payment_type
+        body: JSON.stringify({
+          items: itemsToSend,
+          customer_email: formData.email,
+          success_url: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${window.location.origin}/checkout`,
+          metadata: {
+            name: formData.name,
+            phone: formData.phone,
+            company: formData.company_name,
+            invoice: formData.invoice_number,
+            jurisdiction: formData.jurisdiction,
+            payment_type: formData.payment_type
+          }
         }),
       });
 
-      const session = await response.json();
+      const data = await response.json();
 
-      if (session.error) {
-        throw new Error(session.error.message);
+      if (data.error || !data.sessionUrl) {
+        throw new Error(data.message || 'Failed to create Stripe session.');
       }
 
       // Redirect to Stripe Checkout using session URL
-      if (session.url) {
-        window.location.href = session.url;
-      } else {
-        throw new Error('No checkout URL received from Stripe');
-      }
+      window.location.href = data.sessionUrl;
 
     } catch (error) {
       console.error('Checkout error:', error);

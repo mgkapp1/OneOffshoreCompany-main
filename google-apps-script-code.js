@@ -12,22 +12,6 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Enhanced duplicate protection - check if we recently processed this order
-    const cache = CacheService.getScriptCache();
-    const cacheKey = `order_${data.email}_${data.amount}_${data.invoice_number || 'cart'}_${data.name}`;
-    const recentOrder = cache.get(cacheKey);
-    
-    if (recentOrder) {
-      console.log('Duplicate request detected, skipping email. Cache key:', cacheKey);
-      return ContentService.createTextOutput(JSON.stringify({
-        success: true,
-        message: 'Email already sent recently (duplicate request)'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // Store in cache for 10 minutes to prevent duplicates
-    cache.put(cacheKey, 'sent', 600);
-    
     // Send confirmation email to customer
     const customerSubject = 'Payment Confirmation - One Offshore Company';
     const customerBody = `
@@ -78,7 +62,7 @@ Please contact the customer within 24 hours to proceed with company formation.
       body: adminBody
     });
     
-    console.log('Emails sent successfully for:', data.email);
+    console.log('Emails sent successfully');
     
     return ContentService.createTextOutput(JSON.stringify({
       success: true,

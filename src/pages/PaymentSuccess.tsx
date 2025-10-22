@@ -57,8 +57,21 @@ const PaymentSuccess = () => {
         payment_type: customerData.payment_type || 'cart'
       };
 
-      // Use the Vercel Serverless Function proxy
-      const response = await fetch('/api/send-email', {
+      // Determine the correct endpoint based on environment
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      let endpoint = '/api/send-email';
+      
+      // If running locally, call the Google Apps Script directly to bypass local Vercel API routing issues.
+      // NOTE: This might cause CORS errors, but it confirms the script works.
+      // In production (Vercel), the /api/send-email proxy handles CORS.
+      if (isLocal) {
+        endpoint = 'https://script.google.com/macros/s/AKfycby_78s4mnDdqSxZOv1eMryZL66sq_1sl0eR7JE4CzEDscwGN9LaUojQKl4LbRdWlQUq/exec';
+      }
+
+      console.log(`Sending email request to: ${endpoint}`);
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,16 +79,31 @@ const PaymentSuccess = () => {
         body: JSON.stringify(emailData),
       });
       
-      const result = await response.json();
+      // If calling the Vercel proxy, we expect JSON response
+      if (!isLocal) {
+        const result = await response.json();
 
-      if (result.success) {
-        setEmailStatus('sent');
-        return true;
+        if (result.success) {
+          setEmailStatus('sent');
+          return true;
+        } else {
+          console.error('Email proxy reported failure:', result.error);
+          setEmailStatus('failed');
+          setEmailError(result.error || 'Email dispatch failed via proxy.');
+          return false;
+        }
       } else {
-        console.error('Email proxy reported failure:', result.error);
-        setEmailStatus('failed');
-        setEmailError(result.error || 'Email dispatch failed via proxy.');
-        return false;
+        // If calling Google Apps Script directly, we assume success if the request completes (due to CORS/opaque response)
+        if (response.ok || response.status === 0) {
+          setEmailStatus('sent');
+          return true;
+        } else {
+          // If we get a non-200 status from the direct call, it's likely a CORS issue or script failure
+          console.error('Direct Google Script call failed with status:', response.status);
+          setEmailStatus('failed');
+          setEmailError('Direct script call failed. Check console for CORS errors.');
+          return false;
+        }
       }
       
     } catch (error) {

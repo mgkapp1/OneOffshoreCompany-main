@@ -186,10 +186,10 @@ const PaymentSuccess = () => {
               <div className="flex items-center justify-center space-x-2">
                 <Mail className="w-5 h-5 text-yellow-600" />
                 <div>
-                  <p className="text-yellow-700 font-medium">
+                  <p className="text-yellow-800 font-medium">
                     Email confirmation may be delayed
                   </p>
-                  <p className="text-yellow-600 text-sm mt-1">
+                  <p className="text-yellow-700 text-sm mt-1">
                     {emailError || 'Our team will contact you directly within 24 hours'}
                   </p>
                 </div>

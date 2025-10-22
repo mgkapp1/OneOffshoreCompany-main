@@ -87,7 +87,13 @@ const PaymentSuccess = () => {
   };
 
   useEffect(() => {
+    const customerData = getCustomerDataFromURL();
     const paymentId = generatePaymentId();
+    
+    console.log('--- PaymentSuccess Debugging ---');
+    console.log('Extracted Customer Data:', customerData);
+    console.log('Generated Payment ID:', paymentId);
+    
     const processedPayment = localStorage.getItem(paymentId);
     
     if (processedPayment) {
@@ -129,7 +135,7 @@ const PaymentSuccess = () => {
     };
 
     processPaymentSuccess();
-  }, [clearCart]);
+  }, [clearCart, searchParams]);
 
   if (isLoading) {
     return (

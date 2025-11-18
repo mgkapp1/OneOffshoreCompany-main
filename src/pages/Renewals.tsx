@@ -9,12 +9,11 @@ const Renewals = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Handle double slash in URL by redirecting to clean URL
-    if (location.pathname.includes('//')) {
-      const cleanPath = location.pathname.replace('//', '/');
-      navigate(`${cleanPath}${location.search}`, { replace: true });
-      return;
-    }
+    console.log('Processing renewals payment link:', {
+      pathname: location.pathname,
+      search: location.search,
+      params: Object.fromEntries(searchParams.entries())
+    });
 
     // Extract parameters from accounting software link
     const companyName = searchParams.get('$OSCompanyName');
@@ -30,6 +29,14 @@ const Renewals = () => {
       companyName, firstName, lastName, phone, email, invoiceNumber, jurisdiction, amount
     });
 
+    // Validate required parameters
+    if (!invoiceNumber || !amount) {
+      console.error('Missing required invoice parameters');
+      // Redirect to checkout with available parameters
+      navigate('/checkout');
+      return;
+    }
+
     // Build checkout URL with cleaned parameters
     const checkoutParams = new URLSearchParams();
     
@@ -43,6 +50,7 @@ const Renewals = () => {
     if (amount) checkoutParams.append('$ValueIncTax', amount);
 
     // Redirect to checkout page with invoice parameters
+    console.log('Redirecting to checkout with params:', checkoutParams.toString());
     navigate(`/checkout?${checkoutParams.toString()}`);
   }, [searchParams, navigate, location]);
 
@@ -50,8 +58,9 @@ const Renewals = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your Invoice</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your Invoice Payment</h2>
         <p className="text-gray-600">Redirecting to payment page...</p>
+        <p className="text-sm text-gray-500 mt-2">This may take a few seconds</p>
       </div>
     </div>
   );

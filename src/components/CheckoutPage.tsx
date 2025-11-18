@@ -5,8 +5,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { loadStripe } from '@stripe/stripe-js';
 
-// Initialize Stripe with publishable key only
-const stripePromise = loadStripe('pk_live_xxxxxxxxxxxxxxxxxxxxxxxx'); // You'll need to replace this with your live publishable key
+// Initialize Stripe with live publishable key
+const stripePromise = loadStripe('pk_live_RDr4sm43mFRqVbDzxlQhFabI');
 
 interface CustomerFormData {
   name: string;
@@ -130,7 +130,7 @@ const CheckoutPage = () => {
       const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer pk_live_xxxxxxxxxxxxxxxxxxxxxxxx', // Use publishable key here
+          'Authorization': 'Bearer pk_live_RDr4sm43mFRqVbDzxlQhFabI',
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({

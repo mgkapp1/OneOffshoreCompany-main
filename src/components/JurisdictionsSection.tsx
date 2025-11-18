@@ -34,45 +34,6 @@ const JurisdictionsSection = () => {
       name: "Gibraltar Company",
       price: 1299,
       mainGradient: "bg-gradient-to-r from-red-600 to-yellow-400",
-      flagGradient: "linear-gradient(rgb(255, 255, 255) 0%, rgb(255,I notice the JurisdictionsSection file was cut off. Let me complete it with the full updated version including both UK services at the bottom:
-
-<dyad-write path="src/components/JurisdictionsSection.tsx" description="Updating JurisdictionsSection to include UK LTD and UK LLP at the bottom">
-"use client";
-
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useCart } from '../contexts/CartContext';
-
-const JurisdictionsSection = () => {
-  const { addItem } = useCart();
-
-  const jurisdictions = [
-    {
-      id: 1,
-      name: "Seychelles Company",
-      price: 669,
-      popular: true,
-      mainGradient: "bg-gradient-to-r from-blue-600 via-yellow-400 to-green-600",
-      flagGradient: "linear-gradient(45deg, rgb(0, 82, 204) 0%, rgb(0, 82, 204) 33%, rgb(255, 215, 0) 33%, rgb(255, 215, 0) 66%, rgb(220, 20, 60) 66%, rgb(220, 20, 60) 100%)",
-      description: "Seychelles offers one of the most attractive offshore jurisdictions with 0% corporate tax on foreign-sourced income, strong privacy laws, and rapid company formation.",
-      features: ["Certificate of Incorporation", "Memorandum & Articles", "Share certificates"],
-      route: "/jurisdiction/seychelles"
-    },
-    {
-      id: 2,
-      name: "BVI Company",
-      price: 1090,
-      mainGradient: "bg-gradient-to-r from-blue-600 to-blue-800",
-      flagGradient: "linear-gradient(to right, rgb(0, 82, 204) 0%, rgb(0, 82, 204) 65%, rgb(0, 102, 0) 65%, rgb(0, 102, 0) 100%)",
-      description: "BVI is a premier offshore jurisdiction offering political stability, no corporate tax, flexible corporate structures, and strong confidentiality laws.",
-      features: ["Certificate of Incorporation", "Memorandum & Articles", "Share certificates"],
-      route: "/jurisdiction/bvi"
-    },
-    {
-      id: 3,
-      name: "Gibraltar Company",
-      price: 1299,
-      mainGradient: "bg-gradient-to-r from-red-600 to-yellow-400",
       flagGradient: "linear-gradient(rgb(255, 255, 255) 0%, rgb(255, 255, 255) 50%, rgb(220, 20, 60) 50%, rgb(220, 20, 60) 100%)",
       description: "Establishing a company in Gibraltar presents a myriad of strategic advantages with low corporate tax rates, no capital gains tax, and access to global markets through its strategic location.",
       features: ["Registered office address", "Government fees included", "Certificate of Incorporation"],

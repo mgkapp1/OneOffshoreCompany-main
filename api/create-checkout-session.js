@@ -8,29 +8,47 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { items, customer_email, metadata, success_url, cancel_url } = req.body;
-    
-    // Map items to Stripe line items
-    const line_items = items.map(item => ({
-      price_data: {
-        currency: 'gbp',
-        product_data: {
-          name: item.name,
-        },
-        unit_amount: item.amount, // in pence
-      },
-      quantity: item.quantity || 1,
-    }));
+    const { 
+      amount, 
+      productDescription, 
+      customerEmail, 
+      customerName, 
+      customerPhone, 
+      companyName, 
+      invoiceNumber, 
+      jurisdiction, 
+      paymentType,
+      successUrl,
+      cancelUrl
+    } = req.body;
 
     // Create a Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: line_items,
+      line_items: [
+        {
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: productDescription,
+            },
+            unit_amount: amount, // in pence
+          },
+          quantity: 1,
+        },
+      ],
       mode: 'payment',
-      success_url: success_url,
-      cancel_url: cancel_url,
-      customer_email: customer_email,
-      metadata: metadata,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer_email: customerEmail,
+      metadata: {
+        customerName,
+        customerPhone,
+        companyName,
+        invoiceNumber,
+        jurisdiction,
+        paymentType
+      },
     });
 
     res.status(200).json({

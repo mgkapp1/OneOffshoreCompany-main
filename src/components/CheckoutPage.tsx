@@ -3,6 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Initialize Stripe with publishable key only
+const stripePromise = loadStripe('pk_live_xxxxxxxxxxxxxxxxxxxxxxxx'); // You'll need to replace this with your live publishable key
 
 interface CustomerFormData {
   name: string;
@@ -107,23 +111,26 @@ const CheckoutPage = () => {
     setError(null);
 
     try {
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe failed to load');
+      }
+
       // Build product description based on payment type
       let productDescription = '';
       
       if (formData.payment_type === 'invoice') {
-        // For invoices: Use jurisdiction from URL parameters
         productDescription = `Invoice #${formData.invoice_number} - ${formData.company_name} - ${formData.jurisdiction} - £${formData.amount}`;
       } else {
-        // For cart: Use exact product names from cart items
         const productNames = state.items.map(item => item.name).join(', ');
         productDescription = `${productNames} - Total: £${formData.amount} - ${formData.email}`;
       }
 
-      // Create checkout session directly with Stripe API
+      // Create checkout session using Stripe.js
       const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer sk_test_51SEUcxRmEAZCEXCX8MFdJELlqNnAgOcUEogRmCKH6g3YDxcwHXQruX9Z7XJ2bnqFP5cf2RtHZ62xSc3AM0axEHBp008au56Lyi',
+          'Authorization': 'Bearer pk_live_xxxxxxxxxxxxxxxxxxxxxxxx', // Use publishable key here
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -152,16 +159,18 @@ const CheckoutPage = () => {
         throw new Error(session.error.message);
       }
 
-      // Redirect to Stripe Checkout using session URL
-      if (session.url) {
-        window.location.href = session.url;
-      } else {
-        throw new Error('No checkout URL received from Stripe');
+      // Redirect to Stripe Checkout
+      const result = await stripe.redirectToCheckout({
+        sessionId: session.id,
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message);
       }
 
     } catch (error) {
       console.error('Checkout error:', error);
-      setError(error instanceof Error ? error.message : 'Payment failed');
+      setError(error instanceof Error ? error.message : 'Payment failed. Please try again.');
       setIsProcessing(false);
     }
   };

@@ -48,19 +48,40 @@ const CheckoutPage = () => {
     const jurisdiction = searchParams.get('$Jurisdiction');
     const amount = searchParams.get('$ValueIncTax');
 
-    if (invoiceNumber) {
+    // Also check for hash routing parameters (from renewals.html redirect)
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    const hashInvoiceNumber = hashParams.get('$ProFormaID');
+    const hashCompanyName = hashParams.get('$OSCompanyName');
+    const hashFirstName = hashParams.get('$FirstName');
+    const hashLastName = hashParams.get('$LastName');
+    const hashPhone = hashParams.get('$TelNo');
+    const hashEmail = hashParams.get('$CustomerEmail');
+    const hashJurisdiction = hashParams.get('$Jurisdiction');
+    const hashAmount = hashParams.get('$ValueIncTax');
+
+    // Use hash parameters if available, otherwise use regular search params
+    const effectiveInvoiceNumber = hashInvoiceNumber || invoiceNumber;
+    const effectiveCompanyName = hashCompanyName || companyName;
+    const effectiveFirstName = hashFirstName || firstName;
+    const effectiveLastName = hashLastName || lastName;
+    const effectivePhone = hashPhone || phone;
+    const effectiveEmail = hashEmail || email;
+    const effectiveJurisdiction = hashJurisdiction || jurisdiction;
+    const effectiveAmount = hashAmount || amount;
+
+    if (effectiveInvoiceNumber || effectiveAmount) {
       // This is an invoice payment - pre-fill the form
       setFormData(prev => ({
         ...prev,
         payment_type: 'invoice',
-        invoice_number: invoiceNumber || '',
-        company_name: companyName || '',
-        name: `${firstName || ''} ${lastName || ''}`.trim(),
-        phone: phone || '',
-        email: email || '',
-        email_confirmation: email || '',
-        jurisdiction: jurisdiction || '',
-        amount: amount || ''
+        invoice_number: effectiveInvoiceNumber || '',
+        company_name: effectiveCompanyName || '',
+        name: `${effectiveFirstName || ''} ${effectiveLastName || ''}`.trim(),
+        phone: effectivePhone || '',
+        email: effectiveEmail || '',
+        email_confirmation: effectiveEmail || '',
+        jurisdiction: effectiveJurisdiction || '',
+        amount: effectiveAmount || ''
       }));
     } else {
       // This is a cart payment - set amount from cart

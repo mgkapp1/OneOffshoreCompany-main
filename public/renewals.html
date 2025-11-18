@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Offshore Company - Renewals</title>
+    <script>
+        // Extract query parameters from the current URL
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Build the redirect URL with hash routing
+        let redirectUrl = window.location.origin + '/#/checkout';
+        
+        // Add all query parameters to the redirect URL
+        if (urlParams.toString()) {
+            redirectUrl += '?' + urlParams.toString();
+        }
+        
+        // Redirect to the main app with hash routing
+        window.location.href = redirectUrl;
+    </script>
+</head>
+<body>
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+        <div style="text-align: center;">
+            <h2>Redirecting to Payment Page...</h2>
+            <p>If you are not redirected automatically, <a href="/#/checkout">click here</a>.</p>
+        </div>
+    </div>
+</body>
+</html>

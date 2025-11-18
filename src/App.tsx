@@ -19,7 +19,6 @@ import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import CheckoutPage from "./components/CheckoutPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
-import Renewals from "./pages/Renewals";
 
 const queryClient = new QueryClient();
 
@@ -45,8 +44,6 @@ const App = () => (
             <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
-            {/* Fix: Changed from /renewals/ to /renewals to match accounting system */}
-            <Route path="/renewals" element={<Renewals />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

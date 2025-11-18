@@ -12,6 +12,8 @@ import HongKongPage from "./pages/jurisdictions/HongKong";
 import MarshallIslandsPage from "./pages/jurisdictions/MarshallIslands";
 import NevisPage from "./pages/jurisdictions/Nevis";
 import SeychellesPage from "./pages/jurisdictions/Seychelles";
+import UKLTDPage from "./pages/jurisdictions/UKLTD";
+import UKLLPPage from "./pages/jurisdictions/UKLLP";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
@@ -36,6 +38,8 @@ const App = () => (
             <Route path="/jurisdiction/marshall-islands" element={<MarshallIslandsPage />} />
             <Route path="/jurisdiction/nevis" element={<NevisPage />} />
             <Route path="/jurisdiction/seychelles" element={<SeychellesPage />} />
+            <Route path="/jurisdiction/uk-ltd" element={<UKLTDPage />} />
+            <Route path="/jurisdiction/uk-llp" element={<UKLLPPage />} />
             <Route path="/privacy-policy-gdpr-ccpa" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />

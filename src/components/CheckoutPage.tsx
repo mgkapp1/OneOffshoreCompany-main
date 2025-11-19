@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -23,6 +23,7 @@ interface CustomerFormData {
 const CheckoutPage = () => {
   const { state } = useCart();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CustomerFormData>({
@@ -37,7 +38,7 @@ const CheckoutPage = () => {
     payment_type: 'cart'
   });
 
-  // Check if this is an invoice payment from URL parameters
+  // Check if this is an invoice payment from URL parameters (including renewals)
   useEffect(() => {
     const invoiceNumber = searchParams.get('$ProFormaID');
     const companyName = searchParams.get('$OSCompanyName');
@@ -48,40 +49,22 @@ const CheckoutPage = () => {
     const jurisdiction = searchParams.get('$Jurisdiction');
     const amount = searchParams.get('$ValueIncTax');
 
-    // Also check for hash routing parameters (from renewals.html redirect)
-    const hashParams = new URLSearchParams(window.location.hash.split('?')[1]);
-    const hashInvoiceNumber = hashParams.get('$ProFormaID');
-    const hashCompanyName = hashParams.get('$OSCompanyName');
-    const hashFirstName = hashParams.get('$FirstName');
-    const hashLastName = hashParams.get('$LastName');
-    const hashPhone = hashParams.get('$TelNo');
-    const hashEmail = hashParams.get('$CustomerEmail');
-    const hashJurisdiction = hashParams.get('$Jurisdiction');
-    const hashAmount = hashParams.get('$ValueIncTax');
+    // Check if we're on the renewals route
+    const isRenewalsRoute = location.pathname === '/renewals';
 
-    // Use hash parameters if available, otherwise use regular search params
-    const effectiveInvoiceNumber = hashInvoiceNumber || invoiceNumber;
-    const effectiveCompanyName = hashCompanyName || companyName;
-    const effectiveFirstName = hashFirstName || firstName;
-    const effectiveLastName = hashLastName || lastName;
-    const effectivePhone = hashPhone || phone;
-    const effectiveEmail = hashEmail || email;
-    const effectiveJurisdiction = hashJurisdiction || jurisdiction;
-    const effectiveAmount = hashAmount || amount;
-
-    if (effectiveInvoiceNumber || effectiveAmount) {
+    if (invoiceNumber || amount || isRenewalsRoute) {
       // This is an invoice payment - pre-fill the form
       setFormData(prev => ({
         ...prev,
         payment_type: 'invoice',
-        invoice_number: effectiveInvoiceNumber || '',
-        company_name: effectiveCompanyName || '',
-        name: `${effectiveFirstName || ''} ${effectiveLastName || ''}`.trim(),
-        phone: effectivePhone || '',
-        email: effectiveEmail || '',
-        email_confirmation: effectiveEmail || '',
-        jurisdiction: effectiveJurisdiction || '',
-        amount: effectiveAmount || ''
+        invoice_number: invoiceNumber || '',
+        company_name: companyName || '',
+        name: `${firstName || ''} ${lastName || ''}`.trim(),
+        phone: phone || '',
+        email: email || '',
+        email_confirmation: email || '',
+        jurisdiction: jurisdiction || '',
+        amount: amount || ''
       }));
     } else {
       // This is a cart payment - set amount from cart
@@ -91,7 +74,7 @@ const CheckoutPage = () => {
         payment_type: 'cart'
       }));
     }
-  }, [searchParams, state.total]);
+  }, [searchParams, state.total, location.pathname]);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -162,7 +145,7 @@ const CheckoutPage = () => {
           'line_items[0][quantity]': '1',
           'mode': 'payment',
           'success_url': `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-          'cancel_url': `${window.location.origin}/checkout`,
+          'cancel_url': `${window.location.origin}${location.pathname}${window.location.search}`,
           'customer_email': formData.email,
           'metadata[name]': formData.name,
           'metadata[phone]': formData.phone,

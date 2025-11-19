@@ -1,64 +1,30 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const Renewals = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    console.log('Processing renewals payment link:', {
-      pathname: location.pathname,
-      search: location.search,
-      params: Object.fromEntries(searchParams.entries())
-    });
-
-    // Extract parameters from accounting software link
-    const companyName = searchParams.get('$OSCompanyName');
-    const firstName = searchParams.get('$FirstName');
-    const lastName = searchParams.get('$LastName');
-    const phone = searchParams.get('$TelNo');
-    const email = searchParams.get('$CustomerEmail');
-    const invoiceNumber = searchParams.get('$ProFormaID');
-    const jurisdiction = searchParams.get('$Jurisdiction');
-    const amount = searchParams.get('$ValueIncTax');
-
-    console.log('Processing invoice payment:', {
-      companyName, firstName, lastName, phone, email, invoiceNumber, jurisdiction, amount
-    });
-
-    // Validate required parameters
-    if (!invoiceNumber || !amount) {
-      console.error('Missing required invoice parameters');
-      // Redirect to checkout with available parameters
-      navigate('/checkout');
-      return;
-    }
-
-    // Build checkout URL with cleaned parameters
-    const checkoutParams = new URLSearchParams();
+    // Extract all current search parameters
+    const params = new URLSearchParams(searchParams);
     
-    if (invoiceNumber) checkoutParams.append('$ProFormaID', invoiceNumber);
-    if (companyName) checkoutParams.append('$OSCompanyName', companyName);
-    if (firstName) checkoutParams.append('$FirstName', firstName);
-    if (lastName) checkoutParams.append('$LastName', lastName);
-    if (phone) checkoutParams.append('$TelNo', phone);
-    if (email) checkoutParams.append('$CustomerEmail', email);
-    if (jurisdiction) checkoutParams.append('$Jurisdiction', jurisdiction);
-    if (amount) checkoutParams.append('$ValueIncTax', amount);
-
-    // Redirect to checkout page with invoice parameters
-    console.log('Redirecting to checkout with params:', checkoutParams.toString());
-    navigate(`/checkout?${checkoutParams.toString()}`);
-  }, [searchParams, navigate, location]);
+    // Build the redirect URL to checkout with all parameters preserved
+    const checkoutUrl = `/checkout${params.toString() ? `?${params.toString()}` : ''}`;
+    
+    console.log('Redirecting from renewals to checkout:', checkoutUrl);
+    
+    // Redirect to checkout page with all parameters
+    navigate(checkoutUrl, { replace: true });
+  }, [searchParams, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your Invoice Payment</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your Renewal</h2>
         <p className="text-gray-600">Redirecting to payment page...</p>
         <p className="text-sm text-gray-500 mt-2">This may take a few seconds</p>
       </div>

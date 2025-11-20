@@ -20,6 +20,7 @@ import CookiePolicy from "./pages/CookiePolicy";
 import CheckoutPage from "./components/CheckoutPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Renewals from "./pages/Renewals";
+import RouteTest from "./components/RouteTest";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <RouteTest />
         </BrowserRouter>
       </CartProvider>
     </TooltipProvider>

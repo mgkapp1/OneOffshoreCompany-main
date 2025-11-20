@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renewals - One Offshore Company</title>
+    <script>
+        // Get the current URL parameters
+        const currentUrl = new URL(window.location.href);
+        const searchParams = currentUrl.search;
+        
+        // Redirect to the main app with the same parameters
+        window.location.href = '/' + searchParams;
+    </script>
+</head>
+<body>
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+        <div style="text-align: center;">
+            <h1>Processing Your Renewal</h1>
+            <p>Redirecting to payment page...</p>
+            <p>If you are not redirected automatically, <a href="/">click here</a>.</p>
+        </div>
+    </div>
+</body>
+</html>

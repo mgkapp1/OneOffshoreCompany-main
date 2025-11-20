@@ -1,0 +1,12 @@
+{
+  "routes": [
+    {
+      "src": "/renewals",
+      "dest": "/renewals.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

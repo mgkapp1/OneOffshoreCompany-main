@@ -11,21 +11,40 @@ const Renewals = () => {
   const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {
-    // Log for debugging
-    console.log('Renewals page loaded with params:', Object.fromEntries(searchParams));
-    
+    // Extract all renewal parameters
+    const invoiceNumber = searchParams.get('$ProFormaID');
+    const companyName = searchParams.get('$OSCompanyName');
+    const firstName = searchParams.get('$FirstName');
+    const lastName = searchParams.get('$LastName');
+    const phone = searchParams.get('$TelNo');
+    const email = searchParams.get('$CustomerEmail');
+    const jurisdiction = searchParams.get('$Jurisdiction');
+    const amount = searchParams.get('$ValueIncTax');
+
+    console.log('Renewals page loaded with parameters:', {
+      invoiceNumber,
+      companyName,
+      firstName,
+      lastName,
+      phone,
+      email,
+      jurisdiction,
+      amount
+    });
+
     // Check if we have essential renewal parameters
-    const hasRenewalParams = searchParams.has('$ProFormaID') || searchParams.has('$ValueIncTax');
-    
+    const hasRenewalParams = invoiceNumber || amount;
+
     if (hasRenewalParams) {
-      // We have renewal parameters, show the checkout page directly
       console.log('Renewal parameters detected, showing checkout page');
       setIsProcessing(false);
       setShowCheckout(true);
     } else {
-      // No renewal parameters, redirect to home
-      console.log('No renewal parameters, redirecting to home');
-      navigate('/');
+      console.log('No renewal parameters found, redirecting to home');
+      // Small delay to show processing state
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
     }
   }, [searchParams, navigate]);
 
@@ -35,14 +54,13 @@ const Renewals = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Your Renewal</h2>
-          <p className="text-gray-600">Loading payment information...</p>
+          <p className="text-gray-600">Checking payment information...</p>
         </div>
       </div>
     );
   }
 
   if (showCheckout) {
-    // Render the CheckoutPage component directly with all the search parameters
     return <CheckoutPage />;
   }
 

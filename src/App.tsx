@@ -20,39 +20,43 @@ import CookiePolicy from "./pages/CookiePolicy";
 import CheckoutPage from "./components/CheckoutPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Renewals from "./pages/Renewals";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <CartProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/jurisdiction/bvi" element={<BVIPage />} />
-            <Route path="/jurisdiction/gibraltar" element={<GibraltarPage />} />
-            <Route path="/jurisdiction/hong-kong" element={<HongKongPage />} />
-            <Route path="/jurisdiction/marshall-islands" element={<MarshallIslandsPage />} />
-            <Route path="/jurisdiction/nevis" element={<NevisPage />} />
-            <Route path="/jurisdiction/seychelles" element={<SeychellesPage />} />
-            <Route path="/jurisdiction/uk-ltd" element={<UKLTDPage />} />
-            <Route path="/jurisdiction/uk-llp" element={<UKLLPPage />} />
-            <Route path="/privacy-policy-gdpr-ccpa" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/cookie-policy" element={<CookiePolicy />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/renewals" element={<Renewals />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </CartProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <CartProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/jurisdiction/bvi" element={<BVIPage />} />
+                <Route path="/jurisdiction/gibraltar" element={<GibraltarPage />} />
+                <Route path="/jurisdiction/hong-kong" element={<HongKongPage />} />
+                <Route path="/jurisdiction/marshall-islands" element={<MarshallIslandsPage />} />
+                <Route path="/jurisdiction/nevis" element={<NevisPage />} />
+                <Route path="/jurisdiction/seychelles" element={<SeychellesPage />} />
+                <Route path="/jurisdiction/uk-ltd" element={<UKLTDPage />} />
+                <Route path="/jurisdiction/uk-llp" element={<UKLLPPage />} />
+                <Route path="/privacy-policy-gdpr-ccpa" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/cookie-policy" element={<CookiePolicy />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/renewals" element={<Renewals />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </CartProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;
